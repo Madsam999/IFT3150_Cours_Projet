@@ -1,0 +1,163 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24.2"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						3
+					]
+				},
+				{
+					"build" : "extern",
+					"childIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"jsonFile" : "directory-extern-Debug-88bde94350c4fc5056f9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24.2"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "extern"
+				},
+				{
+					"build" : "extern/bitmap_image",
+					"jsonFile" : "directory-extern.bitmap_image-Debug-0749d11c27b25d769efc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "extern/bitmap_image",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "extern/linalg",
+					"jsonFile" : "directory-extern.linalg-Debug-795b9dd5eba1a7a33c11.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "extern/linalg",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "extern/pcg32",
+					"jsonFile" : "directory-extern.pcg32-Debug-f6c8b3e1c1cb6854d9a9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24.2"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "extern/pcg32",
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					],
+					"name" : "RAY",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "RAY::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-RAY-Debug-3f26a6e5efe4f0eae29a.json",
+					"name" : "RAY",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "bitmap_image::@13473e476f6cc63e8539",
+					"jsonFile" : "target-bitmap_image-Debug-0a154e8957df6b4e2314.json",
+					"name" : "bitmap_image",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "linalg::@54e51150835093e8a5e8",
+					"jsonFile" : "target-linalg-Debug-2a64957ff69930f496c7.json",
+					"name" : "linalg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "link_target::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-link_target-Debug-dd863e4c953b0b41ad1d.json",
+					"name" : "link_target",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "pcg32::@b1ab0afe506e7a24c231",
+					"jsonFile" : "target-pcg32-Debug-f848578f794aafc65929.json",
+					"name" : "pcg32",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/Samuel/Documents/Code/IFT3150_Cours_Projet/Code/cmake-build-debug",
+		"source" : "C:/Users/Samuel/Documents/Code/IFT3150_Cours_Projet/Code"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}
