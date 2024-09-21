@@ -9,6 +9,14 @@
 
 \maketitle
 
-Cette semaine, j'ai débuter le projet. Malheureusement, j'avais un peu le syndrôme de la page blanche, mais Pierre m'a donné une piste de commencement très intéressante et j'ai tenté de l'implémenter. Par contre, c'était plus facile dit que fait. Mon premier gros problème était que Pierre me suggérait d'ajouter une nouvelle primitive au raytracer. Cette primitive (qu'on appelle Medium) agirait comme un contenant pour les voxels et un genre de "bounding box" pour le volume participatifs. Par contre, pour l'ajouter, il fallait que j'aille modifier le code de Parser.cpp qui a été écrit par son étudiant de doctorat, Caio. Ça m'a pris du temps à comprendre comme le parser fonctionnait, mais j'ai réussi à ajouter la nouvelle primitive. Par contre, j'ai rencontrer un nouveau problème. Pour une raison quelconque, le parser est incapable de parse un fichier .ray que j'ai créer (dans le repo c'est voxel\_test.ray). Pour le moment, je vais éviter ce problème et me concentrer sur l'implémentation de la gille de voxel (Medium) et tenter d'utiliser OpenVDB.
+Cette semaine, j'ai débuter le projet. Malheureusement, j'avais un peu le syndrôme de la page blanche, mais Pierre m'a
+donné une piste de commencement très intéressante et j'ai tenté de l'implémenter. Par contre, c'était plus facile dit
+que fait. Mon premier gros problème était que Pierre me suggérait d'ajouter une nouvelle primitive au raytracer. Cette
+primitive (qu'on appelle Medium) agirait comme un contenant pour les voxels et un genre de "bounding box" pour le volume
+participatifs. Par contre, pour l'ajouter, il fallait que j'aille modifier le code de Parser.cpp qui a été écrit par son
+étudiant de doctorat, Caio. Ça m'a pris du temps à comprendre comme le parser fonctionnait, mais j'ai réussi à ajouter
+la nouvelle primitive. Par contre, j'ai rencontrer un nouveau problème. Pour une raison quelconque, le parser est
+incapable de parse un fichier .ray que j'ai créer (dans le repo c'est voxel\_test.ray). Pour le moment, je vais éviter
+ce problème et me concentrer sur l'implémentation de la gille de voxel (Medium) et tenter d'utiliser OpenVDB.
 
 \end{document}
