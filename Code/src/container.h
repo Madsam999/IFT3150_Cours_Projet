@@ -5,6 +5,7 @@
 #include "object.h"
 #include "basic.h"
 #include "aabb.h"
+#include "Medium.h"
 
 //Interface d'un container pour différente intersection.
 class IContainer {
@@ -45,17 +46,21 @@ class BVH : virtual public IContainer {
 public:
     //Liste d'objets représentants tous les objets dans la scène.
     std::vector<Object*> objects;
+    std::vector<Medium*> mediums;
 
     // Racine de l'arbre BVH
     // NOTE UTILE: Si les valeurs de left et right sont nulles, il s'agit d'une feuille.
     BVHNode* root;
 
     //Constructeur de BVH qui appelle récursivement recursive_build afin de construire l'arbre.
-    BVH(std::vector<Object*> objs) : objects(objs) {
+    BVH(std::vector<Object*> objs, std::vector<Medium*> mdms) : objects(objs), mediums(mdms) {
         std::vector<BVHObjectInfo> bvhs;
 
         for (int iobj = 0; iobj < objects.size(); iobj++) {
             bvhs.push_back({iobj, objects[iobj]->compute_aabb()});
+        }
+        for(auto mdm : mediums){
+            mediums.push_back(mdm);
         }
 
         root = recursive_build(bvhs, 0, bvhs.size(), 0);
@@ -102,13 +107,17 @@ class Naive : virtual public IContainer {
 public:
     //Liste d'objets représentants tous les objets dans la scène.
     std::vector<Object*> objects;
+    std::vector<Medium*> mediums;
     //Liste de AABB pour chaque objet.
     std::vector<AABB> aabbs;
 
     //Simple constructeur de Naive à partir d'une liste d'objets
-    Naive(std::vector<Object*> objs) : objects(objs) {
+    Naive(std::vector<Object*> objs, std::vector<Medium*> mdms) : objects(objs), mediums(mdms) {
         for (auto obj : objects) {
             aabbs.push_back(obj->compute_aabb());
+        }
+        for(auto mdm : mediums){
+            mediums.push_back(mdm);
         }
     }
     ~Naive() {};

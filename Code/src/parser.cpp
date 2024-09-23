@@ -268,9 +268,9 @@ bool Parser::parse() {
         switch (token.type) {
             case END_OF_FILE:
                 if (container == "BVH") {
-                    scene.container = new BVH(objects);
+                    scene.container = new BVH(objects, mediums);
                 } else if (container == "Naive") {
-                    scene.container = new Naive(objects);
+                    scene.container = new Naive(objects, mediums);
                 }
 
                 return true;
@@ -520,10 +520,19 @@ void Parser::parse_SphericalLight() {
 }
 
 void Parser::parse_Medium() {
-    std::cout << "yes yes yes" << std::endl;
     int voxel_x = static_cast<int>(lexer.get_number());
     int voxel_y = static_cast<int>(lexer.get_number());
     int voxel_z = static_cast<int>(lexer.get_number());
+    float voxelSize = lexer.get_number();
 
-    std::cout << "Medium: " << voxel_x << " " << voxel_y << " " << voxel_z << std::endl;
+    auto *medium = new Medium(voxel_x, voxel_y, voxel_z, voxelSize);
+
+    finish_medium(medium);
+}
+
+void Parser::finish_medium(Medium *medium) {
+
+    medium->setup_transform(transform_stack.back());
+
+    mediums.push_back(medium);
 }

@@ -20,6 +20,8 @@
 #include "resource_manager.h"
 
 #include "linalg/linalg.h"
+#include "Medium.h"
+
 using namespace linalg::aliases;
 
 // Les différents types de token pouvant être lexés
@@ -116,6 +118,7 @@ private:
     std::vector<double4x4> transform_stack;  // Pile de transformations.
 
     std::vector<Object*> objects;
+    std::vector<Medium*> mediums;
 
     // Les fonctions suivantes analysent toutes les commandes qui peuvent être
     // trouvées dans un fichier .ray.
@@ -152,6 +155,7 @@ private:
 
     // Analyse les parties communes de chaque objet et met en place les objets dans la scène.
     void finish_object(Object *obj);
+    void finish_medium(Medium *medium);
 
 public:
     Scene scene; // La scène qui sera créée pendant l'analyse.
