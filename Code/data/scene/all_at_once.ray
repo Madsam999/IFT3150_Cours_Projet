@@ -98,6 +98,7 @@ Material "cage"
         "refractive_index"   1.0
     "k_reflection" 0
 
+
 ###############################################################################
 
 PushMatrix
@@ -120,7 +121,7 @@ PopMatrix
 PushMatrix
     Translate -1 1.5 0
     Scale 0.5 0.5 0.5 # Mise à l'echelle x y z
-    Mesh "data/assets/mesh/cube.obj" "red" # Mesh "path_to_obj" "material"
+    Mesh "data/assets/mesh/Hunter Knife.obj" "red" # Mesh "path_to_obj" "material"
 PopMatrix
 
 # Ceil
@@ -165,8 +166,7 @@ PopMatrix
 
 PushMatrix
     Translate 0 0 0
-    Rotate 45 1 0 0
-    Medium 10 10 10 0.5
+    Medium 5 5 5 1
 PopMatrix
 
 ###############################################################################

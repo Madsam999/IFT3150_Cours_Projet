@@ -132,8 +132,74 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
   // Fait appel à l'un des containers spécifiées.
   if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit)) {
-    *out_color = double3(1, 0, 0);
-    *out_z_depth = hit.depth;
+      /*
+      Material &material =
+              ResourceManager::Instance()->materials[hit.key_material];
+
+      // @@@@@@ VOTRE CODE ICI
+      // Déterminer la couleur associée à la réflection d'un rayon de manière
+      // récursive.
+      //
+      //
+      double3 reflectedColor;
+      double3 refractedColor;
+      bool isRefract = false;
+      bool isReflex = false;
+      // k_reflection is the coefficient of color captured
+      // by the object when throwing rays.
+      if (material.k_reflection > 0) {
+          if (ray_depth < scene.max_ray_depth) {
+              isReflex = true;
+              // reflected ray direction
+              double3 d = ray.direction;
+              // normal to the surface
+              double3 n = hit.normal;
+              double3 r = normalize(d - 2 * dot(d, n) * n);
+
+              Ray reflectedRay(hit.position + EPSILON * r, r);
+              trace(scene, reflectedRay, ray_depth + 1, &reflectedColor, out_z_depth);
+          }
+      } else if (material.k_refraction > 0) {
+          // On a une réfraction
+          double indiceIncident =
+                  1.0; // On suppose qu'on passe toujours de l'air vers autre chose;
+          double indiceRefractant = material.refractive_index;
+          double eta = indiceIncident / indiceRefractant;
+          if (ray_depth < scene.max_ray_depth) {
+              isRefract = true;
+              double3 normal = hit.normal;
+              double3 rayDirection = ray.direction;
+
+              double3 T =
+                      normal * (eta * dot(normal, rayDirection) -
+                                sqrt(1 - pow(eta, 2) *
+                                         (1 - pow(dot(normal, rayDirection), 2)))) -
+                      eta * rayDirection;
+
+              double c1 = dot(-rayDirection, normal);
+              double c2 = sqrt(1 - pow(eta, 2) * (1 - pow(c1, 2)));
+
+              T = eta * rayDirection + (eta * c1 - c2) * normal;
+
+              Ray refractedRay;
+
+              refractedRay.direction = normalize(T);
+              refractedRay.origin = hit.position + EPSILON * T;
+
+              trace(scene, refractedRay, ray_depth + 1, &refractedColor, out_z_depth);
+          }
+      }
+      if (isReflex) {
+          reflectedColor *= material.k_reflection;
+      }
+      if (isRefract) {
+          refractedColor *= material.k_refraction;
+      }
+
+      *out_color = shade(scene, hit) + reflectedColor + refractedColor;
+*/
+      *out_color = double3(0,1,0);
+      *out_z_depth = hit.depth;
   } else {
     // if no intersection, set the color
     *out_color = double3(0, 0, 0);

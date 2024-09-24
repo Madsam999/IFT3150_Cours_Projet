@@ -29,9 +29,19 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
         return false;
     }
 
-    hit->depth = tmin;
-    double3 p = ray.origin + tmin * ray.direction;
-    hit->position = p;
+    double3 startPoint = ray.origin + ray.direction * tmin;
+    double3 endPoint = ray.origin + ray.direction * tmax;
+
+    // Start the raymarching algorithm
+
+    // Compute the direction of the ray
+    double3 dir = normalize(endPoint - startPoint);
 
     return true;
+}
+
+
+bool Medium::intersectVoxels(double3 start, double3 end, Intersection *hit) {
+
+    return false;
 }
