@@ -5,43 +5,75 @@
 #include "Medium.h"
 
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
-    // Compute the intersection with the medium
-    double tx1, tx2, ty1, ty2, tz1, tz2;
-    double tmin, tmax;
-    auto xMin = -1 * (voxel_x * voxelSize) / 2;
-    auto xMax = (voxel_x * voxelSize) / 2;
-    auto yMin = -1 * (voxel_y * voxelSize) / 2;
-    auto yMax = (voxel_y * voxelSize) / 2;
-    auto zMin = -1 * (voxel_z * voxelSize) / 2;
-    auto zMax = (voxel_z * voxelSize) / 2;
 
-    tx1 = (xMin - ray.origin.x) / ray.direction.x;
-    tx2 = (xMax - ray.origin.x) / ray.direction.x;
-    ty1 = (yMin - ray.origin.y) / ray.direction.y;
-    ty2 = (yMax - ray.origin.y) / ray.direction.y;
-    tz1 = (zMin - ray.origin.z) / ray.direction.z;
-    tz2 = (zMax - ray.origin.z) / ray.direction.z;
+    /*
+     * Compute intersection with cube.
+     * Bottom back left corner is at (0,0,0)
+     * Top front right corner is at (1,1,1)
+     */
 
-    tmin = std::max(std::min(tx1, tx2), std::max(std::min(ty1, ty2), std::min(tz1, tz2)));
-    tmax = std::min(std::max(tx1, tx2), std::min(std::max(ty1, ty2), std::max(tz1, tz2)));
+    // std::cout << hit->position.x << hit->position.y << hit->position.z << std::endl;
 
-    if (tmin > tmax || tmax < 0) {
+    double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
+
+    double3 t0 = (double3(0,0,0) - ray.origin) * inv_dir;
+    double3 t1 = (double3(1,1,1) - ray.origin) * inv_dir;
+
+    double3 tmin = min(t0, t1);
+    double3 tmax = max(t0, t1);
+
+    double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
+    double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
+
+    if (tmax_min < tmin_max) {
         return false;
     }
 
-    double3 startPoint = ray.origin + ray.direction * tmin;
-    double3 endPoint = ray.origin + ray.direction * tmax;
+    double t = tmin_max;
 
-    // Start the raymarching algorithm
+    if (t < t_min || t > t_max) {
+        return false;
+    }
 
-    // Compute the direction of the ray
-    double3 dir = normalize(endPoint - startPoint);
+    double3 start = ray.origin + ray.direction * tmin_max;
+    double3 end = ray.origin + ray.direction * tmax_min;
+
+
+    bool test = DDA(start, end, hit);
 
     return true;
 }
 
+bool Medium::DDA(double3 start, double3 end, Intersection *hit) {
+    //std::cout << "x:" << start.x << "y:" << start.y << "z:" << start.z << std::endl;
 
-bool Medium::intersectVoxels(double3 start, double3 end, Intersection *hit) {
+    float sizeOfVoxelX = 1.0/voxel_x;
+    float sizeOfVoxelY = 1.0/voxel_y;
+    float sizeOfVoxelZ = 1.0/voxel_z;
 
-    return false;
+    int startVoxelX = start.x < 1 ? std::floor(start.x / sizeOfVoxelX) : voxel_x - 1;
+    // Inverse le y, car la boite est construit du bas vers le haut, mais le raytracer scan du haut vers le bas
+    int startVoxelY = start.y < 1 ? 1 - std::floor(start.y / sizeOfVoxelY) : voxel_y - 1;
+    int startVoxelZ = start.z < 1 ? std::floor(start.z / sizeOfVoxelZ) : voxel_z - 1;
+
+    int endVoxelX = end.x < 1 ? std::floor(end.x / sizeOfVoxelX) : voxel_x - 1;
+    // Inverse le y, car la boite est construit du bas vers le haut, mais le raytracer scan du haut vers le bas
+    int endVoxelY = end.y < 1 ? 1 - std::floor(end.y / sizeOfVoxelY) : voxel_y - 1;
+    int endVoxelZ = end.z < 1 ? std::floor(end.z / sizeOfVoxelZ) : voxel_z - 1;
+
+    if(startVoxelX < 0 || startVoxelX >= voxel_x || startVoxelY < 0 || startVoxelY >= voxel_y || startVoxelZ < 0 || startVoxelZ >= voxel_z) {
+        return false;
+    }
+
+    float stepX = startVoxelX < endVoxelX ? 1.0f/voxel_x : -1.0f/voxel_x;
+    float stepY = startVoxelY < endVoxelY ? 1.0f/voxel_y : -1.0f/voxel_y;
+    float stepZ = startVoxelZ < endVoxelZ ? 1.0f/voxel_z : -1.0f/voxel_z;
+
+    float planeToHitX = startVoxelX + stepX;
+    float planeToHitY = startVoxelY + stepY;
+    float planeToHitZ = startVoxelZ + stepZ;
+
+#
+
+    return true;
 }

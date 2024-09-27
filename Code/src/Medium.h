@@ -16,13 +16,11 @@ using namespace linalg::aliases;
 class Voxel {
 public:
     Voxel() {};
-    Voxel(float density, double3 position) {
+    Voxel(float density) {
         this->density = density;
-        this->position = position;
     }
 
     float density;
-    double3 position;
 };
 
 class Medium {
@@ -38,11 +36,10 @@ public:
     };
 
     Medium() {};
-    Medium(int voxel_x, int voxel_y, int voxel_z, float voxelSize) {
+    Medium(int voxel_x, int voxel_y, int voxel_z) {
         this->voxel_x = voxel_x;
         this->voxel_y = voxel_y;
         this->voxel_z = voxel_z;
-        this->voxelSize = voxelSize;
         this->voxels = std::vector<Voxel>(voxel_x * voxel_y * voxel_z);
         createVoxels();
     };
@@ -52,8 +49,6 @@ public:
     int voxel_z;
 
     std::vector<double3> bounds;
-
-    float voxelSize;
 
     std::vector<Voxel> voxels;
 
@@ -73,19 +68,30 @@ public:
 
     bool intersectVoxels(double3 start, double3 end, Intersection *hit);
 
-    std::vector<Voxel> createVoxels() {
+    void printMatrix(double4x4 m)
+    {
+        std::cout << m.x.x << m.y.x << m.z.x << m.w.x << std::endl;
+        std::cout << m.x.y << m.y.y << m.z.y << m.w.y << std::endl;
+        std::cout << m.x.z << m.y.z << m.z.z << m.w.z << std::endl;
+        std::cout << m.x.w << m.y.w << m.z.w << m.w.w << std::endl;
+    }
+
+    void printVector(double3 v)
+    {
+        std::cout << "x:" << v.x << "y:" << v.y << "z:" << v.z << std::endl;
+    }
+
+    void createVoxels() {
         for(int x = 0; x < voxel_x; x++) {
-            for(int y = 0; y < voxel_y; y++) {
-                for(int z = 0; z < voxel_z; z++) {
-                    double3 position = double3((x - (voxel_x/2)) * voxelSize, (y - (voxel_y/2)) * voxelSize, (z - (voxel_z/2)) * voxelSize);
-                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(0, position);
+            for (int y = 0; y < voxel_y; y++) {
+                for (int z = 0; z < voxel_z; z++) {
+                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(0);
                 }
             }
         }
-
-        voxels[3 + 3*voxel_x + 3*voxel_x*voxel_y].density = 1;
-
-        return voxels;
     }
+
+    bool DDA(double3 start, double3 end, Intersection *hit);
+
 };
 

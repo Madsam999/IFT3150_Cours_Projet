@@ -55,9 +55,8 @@ bool BVH::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
 // - Retourner l'intersection avec la profondeur maximale la plus PETITE.
 bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
   bool isHit = false;
-
 /*
-   for (size_t i = 0; i < objects.size(); ++i) {
+  for (size_t i = 0; i < objects.size(); ++i) {
     if (aabbs[i].intersect(ray, t_min, t_max)) {
       if (objects[i]->intersect(ray, t_min, t_max, hit)) {
         t_max = hit->depth;
@@ -65,11 +64,7 @@ bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
       }
     }
   }
-  */
-
-
-
-
+*/
   //std::cout << "Naive intersect" << std::endl;
   for(size_t i = 0; i < mediums.size(); i++) {
       //std::cout << "Medium intersect" << std::endl;
@@ -78,6 +73,7 @@ bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
           isHit = true;
       }
   }
+
 
 
 

@@ -118,12 +118,6 @@ PushMatrix
     Sphere 0.75 "glass" 
 PopMatrix
 
-PushMatrix
-    Translate -1 1.5 0
-    Scale 0.5 0.5 0.5 # Mise à l'echelle x y z
-    Mesh "data/assets/mesh/Hunter Knife.obj" "red" # Mesh "path_to_obj" "material"
-PopMatrix
-
 # Ceil
 PushMatrix
     Translate 0 3 0
@@ -146,7 +140,7 @@ PopMatrix
 
 #Back Wall
 PushMatrix
-    Translate 0 0 15
+    Translate 0 0 -2
     Quad 20 "cage"
 PopMatrix
 
@@ -165,8 +159,9 @@ PushMatrix
 PopMatrix
 
 PushMatrix
-    Translate 0 0 0
-    Medium 5 5 5 1
+    Translate 0 -4 0
+    Scale 3 3 3
+    Medium 2 2 2
 PopMatrix
 
 ###############################################################################

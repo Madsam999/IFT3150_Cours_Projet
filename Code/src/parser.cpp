@@ -523,9 +523,8 @@ void Parser::parse_Medium() {
     int voxel_x = static_cast<int>(lexer.get_number());
     int voxel_y = static_cast<int>(lexer.get_number());
     int voxel_z = static_cast<int>(lexer.get_number());
-    float voxelSize = lexer.get_number();
 
-    auto *medium = new Medium(voxel_x, voxel_y, voxel_z, voxelSize);
+    auto *medium = new Medium(voxel_x, voxel_y, voxel_z);
 
     finish_medium(medium);
 }

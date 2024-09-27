@@ -132,7 +132,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
   // Fait appel à l'un des containers spécifiées.
   if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit)) {
-      /*
+/*
       Material &material =
               ResourceManager::Instance()->materials[hit.key_material];
 
