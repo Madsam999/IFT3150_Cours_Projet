@@ -159,8 +159,7 @@ PushMatrix
 PopMatrix
 
 PushMatrix
-    Translate 0 -4 0
-    Scale 3 3 3
+    Translate 0 0 0
     Medium 2 2 2
 PopMatrix
 

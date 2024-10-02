@@ -85,13 +85,15 @@ public:
         for(int x = 0; x < voxel_x; x++) {
             for (int y = 0; y < voxel_y; y++) {
                 for (int z = 0; z < voxel_z; z++) {
-                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(0);
+                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(1);
                 }
             }
         }
+        voxels[0].density = 1;
+        voxels[1 + 1 * voxel_x + 1 * voxel_x * voxel_y].density = 1;
     }
 
     bool DDA(double3 start, double3 end, Intersection *hit);
-
+    bool drawLine(int3 start, int3 end, Intersection *hit);
 };
 
