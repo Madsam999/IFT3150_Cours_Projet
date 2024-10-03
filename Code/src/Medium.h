@@ -42,17 +42,21 @@ public:
         this->voxel_z = voxel_z;
         this->voxels = std::vector<Voxel>(voxel_x * voxel_y * voxel_z);
         createVoxels();
+        voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
     };
 
     int voxel_x;
     int voxel_y;
     int voxel_z;
 
-    std::vector<double3> bounds;
-
     std::vector<Voxel> voxels;
 
     double3 position;
+
+    double3 minBound = double3(0,0,0);
+    double3 maxBound = double3(1,1,1);
+
+    double3 voxelSize;
 
     bool intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
         Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
@@ -85,7 +89,7 @@ public:
         for(int x = 0; x < voxel_x; x++) {
             for (int y = 0; y < voxel_y; y++) {
                 for (int z = 0; z < voxel_z; z++) {
-                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(1);
+                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(0);
                 }
             }
         }
@@ -93,7 +97,7 @@ public:
         voxels[1 + 1 * voxel_x + 1 * voxel_x * voxel_y].density = 1;
     }
 
-    bool DDA(double3 start, double3 end, Intersection *hit);
+    bool DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
     bool drawLine(int3 start, int3 end, Intersection *hit);
 };
 
