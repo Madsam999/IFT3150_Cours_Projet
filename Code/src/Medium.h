@@ -95,6 +95,8 @@ public:
         }
         voxels[0].density = 1;
         voxels[1 + 1 * voxel_x + 1 * voxel_x * voxel_y].density = 1;
+        voxels[2 + 2 * voxel_x + 2 * voxel_x * voxel_y].density = 1;
+        voxels[3 + 3 * voxel_x + 3 * voxel_x * voxel_y].density = 1;
     }
 
     bool DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);

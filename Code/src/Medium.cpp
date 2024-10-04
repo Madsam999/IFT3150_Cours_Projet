@@ -50,6 +50,11 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
 }
 
 bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+
+    double3 test = ray.origin + ray.direction * 50;
+
+    // std::cout << "Test: " << test.x << " " << test.y << " " << test.z << std::endl;
+
     int3 entryVoxels, exitVoxels;
     if(start.x < 1.0) {
         entryVoxels.x = start.x * voxel_x;
@@ -145,15 +150,15 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
             tDeltas.z = DBL_MAX;
         }
         double3 tMaxes;
-        tMaxes.x = (nextPlanes.x - start.x) / ray.direction.x;
-        tMaxes.y = (nextPlanes.y - start.y) / ray.direction.y;
-        tMaxes.z = (nextPlanes.z - start.z) / ray.direction.z;
+        tMaxes.x = (nextPlanes.x - ray.origin.x) / ray.direction.x;
+        tMaxes.y = (nextPlanes.y - ray.origin.y) / ray.direction.y;
+        tMaxes.z = (nextPlanes.z - ray.origin.z) / ray.direction.z;
 
         double updateTMin = std::min(tMaxes.x, std::min(tMaxes.y, tMaxes.z));
 
-        tMin += updateTMin;
+        tMin = updateTMin;
 
-        double3 newStart = start + ray.direction * updateTMin;
+        double3 newStart = ray.origin + ray.direction * tMin;
 
         if(ray.direction.x > 0) {
             entryVoxels.x = newStart.x < 1 ? std::floor(newStart.x * voxel_x) : voxel_x - 1;

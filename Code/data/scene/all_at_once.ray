@@ -160,7 +160,8 @@ PopMatrix
 
 PushMatrix
     Translate 0 0 0
-    Medium 2 2 2
+    Scale 2 2 2
+    Medium 5 5 5
 PopMatrix
 
 ###############################################################################
