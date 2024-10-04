@@ -42,9 +42,11 @@ void Raytracer::render(const Scene &scene, Frame *output) {
       std::cout << "\rScanlines completed: " << y << "/" << scene.resolution[1]
                 << '\r';
     }
-    if(y == 234) {
+
+    if(y == 230) {
         std::cout << "Debug" << std::endl;
     }
+
 
     for (int x = 0; x < scene.resolution[0]; x++) {
 

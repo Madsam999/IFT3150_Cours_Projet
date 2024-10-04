@@ -93,13 +93,11 @@ public:
                 }
             }
         }
-        voxels[0].density = 1;
-        voxels[1 + 1 * voxel_x + 1 * voxel_x * voxel_y].density = 1;
-        voxels[2 + 2 * voxel_x + 2 * voxel_x * voxel_y].density = 1;
-        voxels[3 + 3 * voxel_x + 3 * voxel_x * voxel_y].density = 1;
+        for (int i = 0; i < std::min(voxel_x, std::min(voxel_y, voxel_z)); ++i) {
+            voxels[i + i * voxel_x + i * voxel_x * voxel_y].density = 1;
+        }
     }
 
     bool DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
-    bool drawLine(int3 start, int3 end, Intersection *hit);
 };
 

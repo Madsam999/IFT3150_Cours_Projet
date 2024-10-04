@@ -158,10 +158,11 @@ PushMatrix
     Quad 3 "red"
 PopMatrix
 
+#Medium
 PushMatrix
     Translate 0 0 0
     Scale 2 2 2
-    Medium 5 5 5
+    Medium 10 10 10
 PopMatrix
 
 ###############################################################################

@@ -5,6 +5,14 @@
 #include "Medium.h"
 #include <fstream>  // Include this for file handling
 
+double floor_epsilon(double x) {
+    return std::floor(x + 0.0001);
+}
+
+double ceil_epsilon(double x) {
+    return std::ceil(x - 0.0001);
+}
+
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
 
     /*
@@ -51,7 +59,7 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
 
 bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
 
-    double3 test = ray.origin + ray.direction * 50;
+    // double3 test = ray.origin + ray.direction * 50;
 
     // std::cout << "Test: " << test.x << " " << test.y << " " << test.z << std::endl;
 
@@ -74,8 +82,6 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
     else {
         entryVoxels.z = voxel_z - 1;
     }
-
-
 
     if(end.x < 1.0) {
         exitVoxels.x = end.x * voxel_x;
@@ -108,8 +114,6 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
 
 
     while(entryVoxels.x != exitVoxels.x || entryVoxels.y != exitVoxels.y || entryVoxels.z != exitVoxels.z) {
-        double3 voxelPosition = double3(entryVoxels.x * voxelSize.x, entryVoxels.y * voxelSize.y, entryVoxels.z * voxelSize.z);
-
         double3 nextPlanes;
         double3 tDeltas;
 
@@ -156,27 +160,30 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
 
         double updateTMin = std::min(tMaxes.x, std::min(tMaxes.y, tMaxes.z));
 
+
         tMin = updateTMin;
 
         double3 newStart = ray.origin + ray.direction * tMin;
 
+        double test = std::floor(newStart.x * voxel_x);
+
         if(ray.direction.x > 0) {
-            entryVoxels.x = newStart.x < 1 ? std::floor(newStart.x * voxel_x) : voxel_x - 1;
+            entryVoxels.x = newStart.x < 1 ? floor_epsilon(newStart.x * voxel_x) : voxel_x - 1;
         }
         else if(ray.direction.x < 0) {
-            entryVoxels.x = newStart.x < 1 ? std::ceil(newStart.x * voxel_x) - 1 : 0;
+            entryVoxels.x = newStart.x < 1 ? ceil_epsilon(newStart.x * static_cast<double>(voxel_x)) - 1 : 0;
         }
         if(ray.direction.y > 0) {
-            entryVoxels.y = newStart.y < 1 ? std::floor(newStart.y * voxel_y) : voxel_y - 1;
+            entryVoxels.y = newStart.y < 1 ? floor_epsilon(newStart.y * voxel_y) : voxel_y - 1;
         }
         else if(ray.direction.y < 0) {
-            entryVoxels.y = newStart.y < 1 ? std::ceil(newStart.y * voxel_y) - 1 : 0;
+            entryVoxels.y = newStart.y < 1 ? ceil_epsilon(newStart.y * static_cast<double>(voxel_y)) - 1 : 0;
         }
         if(ray.direction.z > 0) {
-            entryVoxels.z = newStart.z < 1 ? std::floor(newStart.z * voxel_z) : voxel_z - 1;
+            entryVoxels.z = newStart.z < 1 ? floor_epsilon(newStart.z * voxel_z) : voxel_z - 1;
         }
         else if(ray.direction.z < 0) {
-            entryVoxels.z = newStart.z < 1 ? std::ceil(newStart.z * voxel_z) - 1 : 0;
+            entryVoxels.z = newStart.z < 1 ? ceil_epsilon(newStart.z * static_cast<double>(voxel_z)) - 1 : 0;
         }
         if(voxels[entryVoxels.x + entryVoxels.y * voxel_x + entryVoxels.z * voxel_x * voxel_y].density > 0) {
             hit->position = {entryVoxels.x * voxelSize.x, entryVoxels.y * voxelSize.y, entryVoxels.z * voxelSize.z};
@@ -186,3 +193,4 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
     }
     return false;
 }
+
