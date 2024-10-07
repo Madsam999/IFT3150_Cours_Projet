@@ -27,8 +27,9 @@ analytique, next-event, tracé de chemins, bidirectionnel, etc.).
 - Implementation de l'interpolation Trilinéaire: Semaine du 7 octobre 2024
 - Implémentation du ray marcher: Semaine du 7 octobre (potentielement semaine du 14 octobre si c'est plus compliqué qu'anticipé)
 
-Professeur responsable: Pierre Poulin
+#Informations:
+- Professeur responsable: Pierre Poulin
 
-Éleve: Samuel Fournier
+- Éleve: Samuel Fournier
 
-Matricule: 20218212
+- Matricule: 20218212
