@@ -8,19 +8,21 @@
 #include "basic.h"
 #include "aabb.h"
 #include "object.h"
+#include "pcg32/pcg32.h"
 
 using namespace linalg::aliases;
 
-
+#define DDA 0
+#define RayMarching 1
 
 class Voxel {
 public:
     Voxel() {};
-    Voxel(float density) {
+    Voxel(double density) {
         this->density = density;
     }
 
-    float density;
+    double density;
 };
 
 class Medium {
@@ -36,68 +38,57 @@ public:
     };
 
     Medium() {};
-    Medium(int voxel_x, int voxel_y, int voxel_z) {
-        this->voxel_x = voxel_x;
-        this->voxel_y = voxel_y;
-        this->voxel_z = voxel_z;
-        this->voxels = std::vector<Voxel>(voxel_x * voxel_y * voxel_z);
+    Medium(int voxel_x, int voxel_y, int voxel_z, std::string traversalType) {
+        this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
+        this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
         createVoxels();
         voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
+        mediumColor = double3(rand_double(), rand_double(), rand_double());
+        this->traversalType = traversalType == "DDA" ? DDA : RayMarching;
     };
 
-    int voxel_x;
-    int voxel_y;
-    int voxel_z;
+    bool traversalType;
+
+    int3 voxelCounts;
 
     std::vector<Voxel> voxels;
-
-    double3 position;
 
     double3 minBound = double3(0,0,0);
     double3 maxBound = double3(1,1,1);
 
     double3 voxelSize;
 
+    double3 mediumColor;
+
     bool intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
         Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
-        if(local_intersect(lray, t_min, t_max, hit)){
-            hit->position = mul(transform, {hit->position, 1}).xyz();
-            hit->normal = normalize(mul(transform, {hit->normal, 0}).xyz());
-            return true;
-        }
-        return false;
+        return local_intersect(lray, t_min, t_max, hit);
     }
     
     bool local_intersect(Ray ray, double t_min, double t_max, Intersection *hit);
 
-    bool intersectVoxels(double3 start, double3 end, Intersection *hit);
-
-    void printMatrix(double4x4 m)
-    {
-        std::cout << m.x.x << m.y.x << m.z.x << m.w.x << std::endl;
-        std::cout << m.x.y << m.y.y << m.z.y << m.w.y << std::endl;
-        std::cout << m.x.z << m.y.z << m.z.z << m.w.z << std::endl;
-        std::cout << m.x.w << m.y.w << m.z.w << m.w.w << std::endl;
-    }
-
-    void printVector(double3 v)
-    {
-        std::cout << "x:" << v.x << "y:" << v.y << "z:" << v.z << std::endl;
-    }
-
     void createVoxels() {
-        for(int x = 0; x < voxel_x; x++) {
-            for (int y = 0; y < voxel_y; y++) {
-                for (int z = 0; z < voxel_z; z++) {
-                    voxels[x + y * voxel_x + z * voxel_x * voxel_y] = Voxel(0);
+        for(int x = 0; x < voxelCounts.x; x++) {
+            for (int y = 0; y < voxelCounts.y; y++) {
+                for (int z = 0; z < voxelCounts.z; z++) {
+                    voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = Voxel(rand_double());
                 }
             }
         }
-        for (int i = 0; i < std::min(voxel_x, std::min(voxel_y, voxel_z)); ++i) {
-            voxels[i + i * voxel_x + i * voxel_x * voxel_y].density = 1;
-        }
     }
 
-    bool DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+        return;
+    }
+
+    double3 transferFunction_color(double density) const {
+        return double3(density * mediumColor.x, density * mediumColor.y, density * mediumColor.z);
+    }
+
+    double transferFunction_opacity(double density) {
+        return density * 0.1;
+    }
 };
+
 

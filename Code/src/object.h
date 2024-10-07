@@ -79,18 +79,23 @@ public:
 	// La profondeur du rayon
 	double depth;
 
-	// La position de l'intersection
-	double3 position;
+    // La position de l'intersection
+    double3 position;
 
-	// La normale à la surface d'intersection
-	double3 normal;
+    // La normale à la surface d'intersection
+    double3 normal;
 
-  // NOTE: Texture ?
-	// Les coordonnées UV associées à l'intersection [entre 0 et 1]
-	double2 uv;
+    // NOTE: Texture ?
+    // Les coordonnées UV associées à l'intersection [entre 0 et 1]
+    double2 uv;
 
     // La clé associée au matériel utilisé.
     std::string key_material;
+
+    double3 accumulatedColor;
+    double accumulatedOpacity;
+
+    bool hitGrid = false;
 
 	Intersection() : depth(DBL_MAX) {}
 };

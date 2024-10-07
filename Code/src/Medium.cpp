@@ -6,11 +6,11 @@
 #include <fstream>  // Include this for file handling
 
 double floor_epsilon(double x) {
-    return std::floor(x + 0.0001);
+    return std::floor(x + EPSILON);
 }
 
 double ceil_epsilon(double x) {
-    return std::ceil(x - 0.0001);
+    return std::ceil(x - EPSILON);
 }
 
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -48,16 +48,21 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
     double3 start = ray.origin + ray.direction * tmin_max;
     double3 end = ray.origin + ray.direction * tmax_min;
 
-    hit->position = start;
-    hit->depth = tmin_max;
 
     auto tMin = tmin_max;
     auto tMax = tmax_min;
 
-    return DDA(start, end, hit, ray, tMin, tMax);
+    if(traversalType == RayMarching) {
+        RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+    }
+    else {
+        DDA_Traversal(start, end, hit, ray, tMin, tMax);
+    }
+
+    return true;
 }
 
-bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
 
     // double3 test = ray.origin + ray.direction * 50;
 
@@ -65,53 +70,59 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
 
     int3 entryVoxels, exitVoxels;
     if(start.x < 1.0) {
-        entryVoxels.x = start.x * voxel_x;
+        entryVoxels.x = start.x * voxelCounts.x;
     }
     else {
-        entryVoxels.x = voxel_x - 1;
+        entryVoxels.x = voxelCounts.x - 1;
     }
     if(start.y < 1.0) {
-        entryVoxels.y = start.y * voxel_y;
+        entryVoxels.y = start.y * voxelCounts.y;
     }
     else {
-        entryVoxels.y = voxel_y - 1;
+        entryVoxels.y = voxelCounts.y - 1;
     }
     if(start.z < 1.0) {
-        entryVoxels.z = start.z * voxel_z;
+        entryVoxels.z = start.z * voxelCounts.z;
     }
     else {
-        entryVoxels.z = voxel_z - 1;
+        entryVoxels.z = voxelCounts.z - 1;
     }
 
     if(end.x < 1.0) {
-        exitVoxels.x = end.x * voxel_x;
+        exitVoxels.x = end.x * voxelCounts.x;
     }
     else {
-        exitVoxels.x = voxel_x - 1;
+        exitVoxels.x = voxelCounts.x - 1;
     }
     if(end.y < 1.0) {
-        exitVoxels.y = end.y * voxel_y;
+        exitVoxels.y = end.y * voxelCounts.y;
     }
     else {
-        exitVoxels.y = voxel_y - 1;
+        exitVoxels.y = voxelCounts.y - 1;
     }
     if(end.z < 1.0) {
-        exitVoxels.z = end.z * voxel_z;
+        exitVoxels.z = end.z * voxelCounts.z;
     }
     else {
-        exitVoxels.z = voxel_z - 1;
+        exitVoxels.z = voxelCounts.z - 1;
     }
 
     if((entryVoxels == int3(0,0,1)) && (exitVoxels == int3(0, 0,0))) {
         // std::cout << "EntryVoxels: " << entryVoxels.x << " " << entryVoxels.y << " " << entryVoxels.z << std::endl;
     }
 
-    if(voxels[entryVoxels.x + entryVoxels.y * voxel_x + entryVoxels.z * voxel_x * voxel_y].density > 0) {
-        // hit->position = {entryVoxels.x * voxelSize.x, entryVoxels.y * voxelSize.y, entryVoxels.z * voxelSize.z};
-        return true;
-    }
+    // if(voxels[entryVoxels.x + entryVoxels.y * voxelCounts.x + entryVoxels.z * voxelCounts.x * voxelCounts.y].density > 0) {
+    //    // hit->position = {entryVoxels.x * voxelSize.x, entryVoxels.y * voxelSize.y, entryVoxels.z * voxelSize.z};
+    //    return true;
+    //}
 
+    double entryDensity = voxels[entryVoxels.x + entryVoxels.y * voxelCounts.x + entryVoxels.z * voxelCounts.x * voxelCounts.y].density;
 
+    // Colour accumulated along the ray inside the volume grid
+    double3 accumulatedColor = transferFunction_color(entryDensity);
+
+    // Opacity accumulated along the ray inside the volume grid
+    double accumulatedOpacity = transferFunction_opacity(entryDensity);
 
     while(entryVoxels.x != exitVoxels.x || entryVoxels.y != exitVoxels.y || entryVoxels.z != exitVoxels.z) {
         double3 nextPlanes;
@@ -165,32 +176,40 @@ bool Medium::DDA(double3 start, double3 end, Intersection *hit, Ray ray, double 
 
         double3 newStart = ray.origin + ray.direction * tMin;
 
-        double test = std::floor(newStart.x * voxel_x);
+        double test = std::floor(newStart.x * voxelCounts.x);
 
         if(ray.direction.x > 0) {
-            entryVoxels.x = newStart.x < 1 ? floor_epsilon(newStart.x * voxel_x) : voxel_x - 1;
+            entryVoxels.x = newStart.x < 1 ? floor_epsilon(newStart.x * voxelCounts.x) : voxelCounts.x - 1;
         }
         else if(ray.direction.x < 0) {
-            entryVoxels.x = newStart.x < 1 ? ceil_epsilon(newStart.x * static_cast<double>(voxel_x)) - 1 : 0;
+            entryVoxels.x = newStart.x < 1 ? ceil_epsilon(newStart.x * static_cast<double>(voxelCounts.x)) - 1 : 0;
         }
         if(ray.direction.y > 0) {
-            entryVoxels.y = newStart.y < 1 ? floor_epsilon(newStart.y * voxel_y) : voxel_y - 1;
+            entryVoxels.y = newStart.y < 1 ? floor_epsilon(newStart.y * voxelCounts.y) : voxelCounts.y - 1;
         }
         else if(ray.direction.y < 0) {
-            entryVoxels.y = newStart.y < 1 ? ceil_epsilon(newStart.y * static_cast<double>(voxel_y)) - 1 : 0;
+            entryVoxels.y = newStart.y < 1 ? ceil_epsilon(newStart.y * static_cast<double>(voxelCounts.y)) - 1 : 0;
         }
         if(ray.direction.z > 0) {
-            entryVoxels.z = newStart.z < 1 ? floor_epsilon(newStart.z * voxel_z) : voxel_z - 1;
+            entryVoxels.z = newStart.z < 1 ? floor_epsilon(newStart.z * voxelCounts.z) : voxelCounts.z - 1;
         }
         else if(ray.direction.z < 0) {
-            entryVoxels.z = newStart.z < 1 ? ceil_epsilon(newStart.z * static_cast<double>(voxel_z)) - 1 : 0;
+            entryVoxels.z = newStart.z < 1 ? ceil_epsilon(newStart.z * static_cast<double>(voxelCounts.z)) - 1 : 0;
         }
-        if(voxels[entryVoxels.x + entryVoxels.y * voxel_x + entryVoxels.z * voxel_x * voxel_y].density > 0) {
-            hit->position = {entryVoxels.x * voxelSize.x, entryVoxels.y * voxelSize.y, entryVoxels.z * voxelSize.z};
-            return true;
+
+        double voxelDensity = voxels[entryVoxels.x + entryVoxels.y * voxelCounts.x + entryVoxels.z * voxelCounts.x * voxelCounts.y].density;
+
+        accumulatedColor = accumulatedColor + (1 - accumulatedOpacity) * transferFunction_opacity(voxelDensity) * transferFunction_color(voxelDensity);
+        accumulatedOpacity = accumulatedOpacity + (1 - accumulatedOpacity) * transferFunction_opacity(voxelDensity);
+
+        if(accumulatedOpacity >= 1) {
+            hit->accumulatedOpacity = accumulatedOpacity;
+            hit->accumulatedColor = accumulatedColor;
+            break;
         }
 
     }
-    return false;
+    hit->accumulatedOpacity = accumulatedOpacity;
+    hit->accumulatedColor = accumulatedColor;
 }
 

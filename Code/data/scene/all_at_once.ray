@@ -140,7 +140,7 @@ PopMatrix
 
 #Back Wall
 PushMatrix
-    Translate 0 0 -2
+    Translate 0 0 15
     Quad 20 "cage"
 PopMatrix
 
@@ -161,8 +161,8 @@ PopMatrix
 #Medium
 PushMatrix
     Translate 0 0 0
-    Scale 2 2 2
-    Medium 10 10 10
+    Scale 1.5 2 0.5
+    Medium 15 15 15 "DDA"
 PopMatrix
 
 ###############################################################################

@@ -43,7 +43,7 @@ void Raytracer::render(const Scene &scene, Frame *output) {
                 << '\r';
     }
 
-    if(y == 230) {
+    if(y == 328) {
         std::cout << "Debug" << std::endl;
     }
 
@@ -137,7 +137,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
   // Fait appel à l'un des containers spécifiées.
   if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit)) {
-/*
+
       Material &material =
               ResourceManager::Instance()->materials[hit.key_material];
 
@@ -201,9 +201,15 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
           refractedColor *= material.k_refraction;
       }
 
-      *out_color = shade(scene, hit) + reflectedColor + refractedColor;
-*/
-      *out_color = double3(0,1,0);
+      double3 finalColour = shade(scene, hit) + reflectedColor + refractedColor;
+
+      if(hit.hitGrid) {
+          *out_color = finalColour * hit.accumulatedOpacity;
+      }
+      else {
+          *out_color = finalColour;
+      }
+
       *out_z_depth = hit.depth;
   } else {
     // if no intersection, set the color
