@@ -1,5 +1,8 @@
 # IFT3150 Cours Projet
 
+# Lien vers la page web du projet
+- https://madsam999.github.io/
+
 # Description:
 Le projet consiste à augmenter le programme de lancer de rayons développé dans 
 le cours IFT3355 pour qu'il génère des images de volumes participatifs,
