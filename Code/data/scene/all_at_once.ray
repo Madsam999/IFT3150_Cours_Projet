@@ -161,7 +161,7 @@ PopMatrix
 #Medium
 PushMatrix
     Translate 0 0 0
-    Scale 1.5 2 0.5
+    Scale 2 2 2
     Medium 15 15 15 "DDA"
 PopMatrix
 

@@ -89,6 +89,8 @@ public:
     double transferFunction_opacity(double density) {
         return density * 0.1;
     }
+
+    double triLinearInterpolation(double3 position, int3 voxelPosition);
 };
 
 
