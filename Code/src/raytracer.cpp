@@ -203,8 +203,10 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
       double3 finalColour = shade(scene, hit) + reflectedColor + refractedColor;
 
+      double transmittance = std::exp(-hit.length * hit.accumulatedOpacity);
+
       if(hit.hitGrid) {
-          *out_color = finalColour * hit.accumulatedOpacity;
+          *out_color = finalColour * transmittance + (1 - transmittance) * hit.accumulatedColor;
       }
       else {
           *out_color = finalColour;

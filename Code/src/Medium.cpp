@@ -59,6 +59,10 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
         DDA_Traversal(start, end, hit, ray, tMin, tMax);
     }
 
+    double rayLength = length(end - start);
+
+    hit->length = rayLength;
+
     return true;
 }
 
@@ -204,13 +208,13 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
 
         if(accumulatedOpacity >= 1) {
             hit->accumulatedOpacity = accumulatedOpacity;
-            hit->accumulatedColor = accumulatedColor;
+            hit->accumulatedColor = mediumColor;
             break;
         }
 
     }
     hit->accumulatedOpacity = accumulatedOpacity;
-    hit->accumulatedColor = accumulatedColor;
+    hit->accumulatedColor = mediumColor;
 }
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {

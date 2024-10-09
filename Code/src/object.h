@@ -97,6 +97,8 @@ public:
 
     bool hitGrid = false;
 
+    double length;
+
 	Intersection() : depth(DBL_MAX) {}
 };
 

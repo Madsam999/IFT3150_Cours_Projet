@@ -43,7 +43,7 @@ public:
         this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
         createVoxels();
         voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
-        mediumColor = double3(rand_double(), rand_double(), rand_double());
+        mediumColor = double3(1.0, 0.0, 1.0);
         this->traversalType = traversalType == "DDA" ? DDA : RayMarching;
     };
 
