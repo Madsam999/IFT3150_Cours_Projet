@@ -45,12 +45,11 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
 
     // std::cout << "Tmin: " << tmin_max << " Tmax: " << tmax_min << std::endl;
 
-    double3 start = ray.origin + ray.direction * tmin_max;
-    double3 end = ray.origin + ray.direction * tmax_min;
-
-
     auto tMin = tmin_max;
     auto tMax = tmax_min;
+
+    double3 start = ray.origin + ray.direction * tMin;
+    double3 end = ray.origin + ray.direction * tMax;
 
     if(traversalType == RayMarching) {
         RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
@@ -58,6 +57,12 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
     else {
         DDA_Traversal(start, end, hit, ray, tMin, tMax);
     }
+
+    double lengthOfRay = length(end - start);
+
+    hit->lengthOfRayInMedium = lengthOfRay;
+
+    hit->mediumScatter = scatter;
 
     return true;
 }
@@ -105,10 +110,6 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
     }
     else {
         exitVoxels.z = voxelCounts.z - 1;
-    }
-
-    if((entryVoxels == int3(0,0,1)) && (exitVoxels == int3(0, 0,0))) {
-        // std::cout << "EntryVoxels: " << entryVoxels.x << " " << entryVoxels.y << " " << entryVoxels.z << std::endl;
     }
 
     // if(voxels[entryVoxels.x + entryVoxels.y * voxelCounts.x + entryVoxels.z * voxelCounts.x * voxelCounts.y].density > 0) {
@@ -204,13 +205,13 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
 
         if(accumulatedOpacity >= 1) {
             hit->accumulatedOpacity = accumulatedOpacity;
-            hit->accumulatedColor = accumulatedColor;
+            hit->accumulatedColor = mediumColor;
             break;
         }
 
     }
     hit->accumulatedOpacity = accumulatedOpacity;
-    hit->accumulatedColor = accumulatedColor;
+    hit->accumulatedColor = mediumColor;
 }
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {

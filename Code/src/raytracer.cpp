@@ -43,10 +43,9 @@ void Raytracer::render(const Scene &scene, Frame *output) {
                 << '\r';
     }
 
-    if(y == 328) {
+    if(y == 408) {
         std::cout << "Debug" << std::endl;
     }
-
 
     for (int x = 0; x < scene.resolution[0]; x++) {
 
@@ -203,12 +202,15 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
       double3 finalColour = shade(scene, hit) + reflectedColor + refractedColor;
 
+      double transmittance = std::exp(-hit.lengthOfRayInMedium * hit.accumulatedOpacity);
+
       if(hit.hitGrid) {
-          *out_color = finalColour * hit.accumulatedOpacity;
+          *out_color = (finalColour * transmittance) + (hit.accumulatedColor * (1 - transmittance) * hit.mediumScatter);
       }
       else {
           *out_color = finalColour;
       }
+
 
       *out_z_depth = hit.depth;
   } else {

@@ -115,7 +115,7 @@ PopMatrix
 
 PushMatrix
     Translate -0.80 -2 0
-    Sphere 0.75 "glass" 
+    Sphere 0.75 "glass"
 PopMatrix
 
 # Ceil

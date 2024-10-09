@@ -97,6 +97,10 @@ public:
 
     bool hitGrid = false;
 
+    double lengthOfRayInMedium;
+
+    double3 mediumScatter;
+
 	Intersection() : depth(DBL_MAX) {}
 };
 

@@ -18,9 +18,7 @@ using namespace linalg::aliases;
 class Voxel {
 public:
     Voxel() {};
-    Voxel(double density) {
-        this->density = density;
-    }
+    Voxel(double density): density(density) {}
 
     double density;
 };
@@ -42,9 +40,12 @@ public:
         this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
         this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
         createVoxels();
-        voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
-        mediumColor = double3(rand_double(), rand_double(), rand_double());
+        this->voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
+        // pink rgb between 0 and 1
+        srand (time(NULL));
+        this->mediumColor = double3(0.18, 0.812, 0.569);
         this->traversalType = traversalType == "DDA" ? DDA : RayMarching;
+        this->scatter = double3(0.1, 0.1, 0.1);
     };
 
     bool traversalType;
@@ -59,6 +60,8 @@ public:
     double3 voxelSize;
 
     double3 mediumColor;
+
+    double3 scatter;
 
     bool intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
         Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
