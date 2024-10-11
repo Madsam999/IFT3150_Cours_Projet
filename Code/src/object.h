@@ -92,8 +92,11 @@ public:
     // La clé associée au matériel utilisé.
     std::string key_material;
 
-    double3 accumulatedColor;
     double accumulatedOpacity;
+
+    double length;
+
+    double3 scatter;
 
     bool hitGrid = false;
 

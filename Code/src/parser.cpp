@@ -6,7 +6,6 @@
     throw ss.str(); \
 }
 
-
 bool Token::operator==(Token const &other) const {
     if (type != other.type) {
         return false;
@@ -291,7 +290,6 @@ bool Parser::parse() {
 #define HANDLE_NAME(_name) if (name == #_name) { parse_##_name(); continue; }
 
         try {
-            // std::cout << "Handling Tokens" << std::endl;
             HANDLE_NAME(dimension)
             HANDLE_NAME(jitter_radius)
             HANDLE_NAME(samples_per_pixel)
