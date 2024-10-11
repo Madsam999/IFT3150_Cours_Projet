@@ -18,34 +18,24 @@ using namespace linalg::aliases;
 class Voxel {
 public:
     Voxel() {};
-    Voxel(double density) {
-        this->density = density;
-    }
+    Voxel(double density);
 
     double density;
 };
 
 class Medium {
 public:
-
-    double4x4 transform;
-    double4x4 i_transform;
-
-    void setup_transform(double4x4 m)
-    {
-        transform = m;
-        i_transform = inverse(m);
-    };
-
+    void setup_transform(double4x4 m);
     Medium() {};
-    Medium(int voxel_x, int voxel_y, int voxel_z, std::string traversalType) {
-        this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
-        this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
-        createVoxels();
-        voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
-        mediumColor = double3(rand_double(), rand_double(), rand_double());
-        this->traversalType = traversalType == "DDA" ? DDA : RayMarching;
-    };
+    Medium(int voxel_x, int voxel_y, int voxel_z, std::string traversalType);
+    bool intersect(Ray ray, double t_min, double t_max, Intersection *hit);
+    bool local_intersect(Ray ray, double t_min, double t_max, Intersection *hit);
+    void createVoxels();
+    void DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    double3 transferFunction_color(double density) const;
+    double transferFunction_opacity(double density) const;
+    double triLinearInterpolation(double3 position, int3 voxelPosition);
 
     bool traversalType;
 
@@ -60,37 +50,8 @@ public:
 
     double3 mediumColor;
 
-    bool intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
-        Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
-        return local_intersect(lray, t_min, t_max, hit);
-    }
-    
-    bool local_intersect(Ray ray, double t_min, double t_max, Intersection *hit);
-
-    void createVoxels() {
-        for(int x = 0; x < voxelCounts.x; x++) {
-            for (int y = 0; y < voxelCounts.y; y++) {
-                for (int z = 0; z < voxelCounts.z; z++) {
-                    voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = Voxel(rand_double());
-                }
-            }
-        }
-    }
-
-    void DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
-    void RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
-        return;
-    }
-
-    double3 transferFunction_color(double density) const {
-        return double3(density * mediumColor.x, density * mediumColor.y, density * mediumColor.z);
-    }
-
-    double transferFunction_opacity(double density) {
-        return density * 0.1;
-    }
-
-    double triLinearInterpolation(double3 position, int3 voxelPosition);
+    double4x4 transform;
+    double4x4 i_transform;
 };
 
 
