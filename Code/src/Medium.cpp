@@ -41,13 +41,30 @@ void Medium::setup_transform(double4x4 m) {
     this->i_transform = inverse(m);
 }
 
-Medium::Medium(int voxel_x, int voxel_y, int voxel_z, std::string traversalType) {
+Medium::Medium(int voxel_x, int voxel_y, int voxel_z, int traversalType) {
     this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
     this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
     this->voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
     this->mediumColor = double3(62.0, 163.0, 194.0) / 255.0;
-    this->traversalType = traversalType == "DDA" ? DDA : RayMarching;
+    switch (traversalType) {
+        case 0:
+            this->traversalType = DDA;
+            break;
+        case 1:
+            this->traversalType = RegularStepRM;
+            break;
+        case 2:
+            this->traversalType = RegularStepJitterRM;
+            break;
+        case 3:
+            this->traversalType = MiddleRayVoxelRM;
+            break;
+        case 4:
+            this->traversalType = MiddleRayVoxelJitterRM;
+            break;
+    }
     createVoxels();
+    this->stepSize = 1/1000.0;
 }
 
 bool Medium::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -71,7 +88,7 @@ double3 Medium::transferFunction_color(double density) const {
 }
 
 double Medium::transferFunction_opacity(double density) const {
-    return density * this->voxelSize.x;
+    return density;
 }
 
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -113,11 +130,23 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
     auto tMin = tmin_max;
     auto tMax = tmax_min;
 
-    if(traversalType == RayMarching) {
-        RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
-    }
-    else {
-        DDA_Traversal(start, end, hit, ray, tMin, tMax);
+    switch (this->traversalType) {
+        case 0:
+            DDA_Traversal(start, end, hit, ray, tMin, tMax);
+            break;
+        case 1:
+            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+            break;
+        case 2:
+            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+            break;
+        case 3:
+            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+            break;
+        case 4:
+            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+            break;
+
     }
 
     hit->length = tmax_min - tmin_max;
@@ -182,6 +211,38 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
 }
 
 void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / this->stepSize));
+
+    auto t0 = tMin;
+    auto t1 = tMax;
+
+    auto stepSize = (t1 - t0) / intervals;
+
+    float transparancy = 1.0;
+
+    for(int i = 0; i < intervals; i++) {
+
+        auto t = t0 + (stepSize * i);
+
+        double3 position = ray.origin + ray.direction * t;
+
+        int3 voxelPosition = calculateEntryVoxel(position, this->voxelCounts);
+        int voxelCoordinate = voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y;
+
+        double density = triLinearInterpolation(position, voxelPosition);
+
+        double attenuation = std::exp(-stepSize * transferFunction_opacity(density));
+        transparancy *= attenuation;
+
+        if(transparancy <= EPSILON) {
+            hit->accumulatedOpacity = 1.0;
+            return;
+        }
+    }
+
+    hit->accumulatedOpacity = 1.0 - transparancy;
+
     return;
 }
 
@@ -328,5 +389,44 @@ double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
 
     Df = D9 * (1 - ty) + D10 * ty;
     return Df;
+}
+
+double Medium::testLightIntersection(Ray ray, double t_min, double t_max, Intersection *hit) {
+    /*
+    * Compute intersection with cube.
+    * Bottom back left corner is at (0,0,0)
+    * Top front right corner is at (1,1,1)
+    */
+
+    // Inverse ray direction to avoid division by zero
+    double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
+
+    double3 t0 = (minBound - ray.origin) * inv_dir;
+    double3 t1 = (maxBound - ray.origin) * inv_dir;
+
+    double3 tmin = min(t0, t1);
+    double3 tmax = max(t0, t1);
+
+    double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
+    double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
+
+    if (tmax_min < tmin_max) {
+        return false;
+    }
+
+    double t = tmin_max;
+
+    if (t < t_min || t > t_max) {
+        return false;
+    }
+
+    // std::cout << "Tmin: " << tmin_max << " Tmax: " << tmax_min << std::endl;
+
+    double3 start = ray.origin + ray.direction * tmin_max;
+    double3 end = ray.origin + ray.direction * tmax_min;
+
+
+    auto tMin = tmin_max;
+    auto tMax = tmax_min;
 }
 

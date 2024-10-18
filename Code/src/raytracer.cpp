@@ -200,8 +200,6 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
       double transmittance = std::exp(-hit.length * hit.accumulatedOpacity);
 
-      double3 scatter = double3(rand_double(), rand_double(), rand_double());
-
       if(hit.hitGrid) {
           *out_color = (finalColour * transmittance) + ((1.0 - transmittance) * hit.scatter);
       }

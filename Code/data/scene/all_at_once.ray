@@ -162,7 +162,7 @@ PopMatrix
 PushMatrix
     Translate 0 0 0
     Scale 2 2 2
-    Medium 100 100 100 "DDA"
+    Medium 1000 500 1000 1
 PopMatrix
 
 ###############################################################################

@@ -9,11 +9,9 @@
 #include "aabb.h"
 #include "object.h"
 #include "pcg32/pcg32.h"
+// #include "scene.h"
 
 using namespace linalg::aliases;
-
-#define DDA 0
-#define RayMarching 1
 
 class Voxel {
 public:
@@ -27,7 +25,7 @@ class Medium {
 public:
     void setup_transform(double4x4 m);
     Medium() {};
-    Medium(int voxel_x, int voxel_y, int voxel_z, std::string traversalType);
+    Medium(int voxel_x, int voxel_y, int voxel_z, int traversalType);
     bool intersect(Ray ray, double t_min, double t_max, Intersection *hit);
     bool local_intersect(Ray ray, double t_min, double t_max, Intersection *hit);
     void createVoxels();
@@ -36,8 +34,19 @@ public:
     double3 transferFunction_color(double density) const;
     double transferFunction_opacity(double density) const;
     double triLinearInterpolation(double3 position, int3 voxelPosition);
+    double testLightIntersection(Ray ray, double t_min, double t_max, Intersection *hit);
 
-    bool traversalType;
+    enum TraversalType {
+        DDA = 0,
+        RegularStepRM = 1,
+        RegularStepJitterRM = 2,
+        MiddleRayVoxelRM = 3,
+        MiddleRayVoxelJitterRM = 4
+    };
+
+    float stepSize;
+
+    TraversalType traversalType;
 
     int3 voxelCounts;
 

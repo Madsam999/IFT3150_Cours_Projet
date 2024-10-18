@@ -15,6 +15,7 @@
 using namespace linalg::aliases;
 #include "aabb.h"
 
+
 // Le type d'une "liste de paramètres", e.g. une map de strings vers des listes de nombres.
 typedef std::map<std::string, std::vector<double> > ParamList;
 
