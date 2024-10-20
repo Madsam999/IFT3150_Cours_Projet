@@ -9,9 +9,10 @@
 #include "aabb.h"
 #include "object.h"
 #include "pcg32/pcg32.h"
-// #include "scene.h"
 
 using namespace linalg::aliases;
+
+class Scene;
 
 class Voxel {
 public:
@@ -34,7 +35,7 @@ public:
     double3 transferFunction_color(double density) const;
     double transferFunction_opacity(double density) const;
     double triLinearInterpolation(double3 position, int3 voxelPosition);
-    double testLightIntersection(Ray ray, double t_min, double t_max, Intersection *hit);
+    bool testLightIntersection(Ray ray, double t_min, double* t_max);
 
     enum TraversalType {
         DDA = 0,
@@ -61,6 +62,11 @@ public:
 
     double4x4 transform;
     double4x4 i_transform;
+
+    double sigma_a = 0.1;
+
+    Scene* scene;
 };
+
 
 

@@ -11,7 +11,7 @@
 //				- S'il y a intersection, ajouter le noeud à ceux
 // à visiter.
 // - Retourner l'intersection avec la profondeur maximale la plus PETITE.
-bool BVH::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
+bool BVH::intersect(Ray ray, double t_min, double t_max, Intersection *hit, bool grid) {
   if (!root) {
     return false;
   }
@@ -53,7 +53,7 @@ bool BVH::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
 // géométrie.
 //				- Si intersection, mettre à jour les paramètres.
 // - Retourner l'intersection avec la profondeur maximale la plus PETITE.
-bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
+bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit, bool grid) {
   bool isHit = false;
 
   for (size_t i = 0; i < objects.size(); ++i) {
@@ -65,10 +65,12 @@ bool Naive::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
     }
   }
 
-  for(size_t i = 0; i < mediums.size(); ++i) {
-    if(mediums[i]->intersect(ray, t_min, t_max, hit)) {
-      hit->hitGrid = true;
-    }
+  if(grid) {
+      for(size_t i = 0; i < mediums.size(); ++i) {
+          if(mediums[i]->intersect(ray, t_min, t_max, hit)) {
+              hit->hitGrid = true;
+          }
+      }
   }
 
   return isHit;

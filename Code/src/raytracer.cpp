@@ -131,7 +131,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
   Intersection hit;
 
   // Fait appel à l'un des containers spécifiées.
-  if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit)) {
+  if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit, true)) {
 
       Material &material =
               ResourceManager::Instance()->materials[hit.key_material];
@@ -198,10 +198,10 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
 
       double3 finalColour = shade(scene, hit) + reflectedColor + refractedColor;
 
-      double transmittance = std::exp(-hit.length * hit.accumulatedOpacity);
+      double transmittance = std::exp(-2 * 0.1);
 
       if(hit.hitGrid) {
-          *out_color = (finalColour * transmittance) + ((1.0 - transmittance) * hit.scatter);
+          *out_color = (finalColour * hit.accumulatedOpacity) + hit.scatter;
       }
       else {
           *out_color = finalColour;
@@ -340,7 +340,7 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
         Ray shadowRay = Ray(shadowOrigin, shadowRayDir);
 
         if (!scene.container->intersect(shadowRay, EPSILON, distanceToLight,
-                                        &shadowHit)) {
+                                        &shadowHit, false)) {
           visibleRays++;
         }
       }
@@ -349,7 +349,7 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
 
     if (light.radius == 0) {
       if (scene.container->intersect(shadowRay, EPSILON, lightDistance,
-                                     &shadowHit)) {
+                                     &shadowHit, false)) {
         if (shadowHit.depth < lightDistance) {
           continue;
         }

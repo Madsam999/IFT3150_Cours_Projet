@@ -271,7 +271,9 @@ bool Parser::parse() {
                 } else if (container == "Naive") {
                     scene.container = new Naive(objects, mediums);
                 }
-
+                for(auto &med : mediums) {
+                    med->scene = &scene;
+                }
                 return true;
             case ERROR:
                 std::cerr << "parsing failed due to lexing error" << std::endl;

@@ -3,6 +3,7 @@
 //
 
 #include "Medium.h"
+#include "scene.h"
 #include <fstream>  // Include this for file handling
 
 // ############################## Utility Functions ##############################
@@ -179,7 +180,8 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
 
     int voxelCoordinate = entryVoxel.x + entryVoxel.y * voxelCounts.x + entryVoxel.z * voxelCounts.x * voxelCounts.y;
     double3 accumulatedColor = transferFunction_color(this->voxels[voxelCoordinate].density);
-    double accumulatedOpacity = transferFunction_opacity(this->voxels[voxelCoordinate].density);
+    double accumulatedOpacity = 1;
+    // accumulatedOpacity *= std::exp(0 * this->voxels[voxelCoordinate].density);
 
     while(entryVoxel.x != exitVoxel.x || entryVoxel.y != exitVoxel.y || entryVoxel.z != exitVoxel.z) {
         if(tMaxes.x < tMaxes.y && tMaxes.x < tMaxes.z) {
@@ -195,11 +197,17 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
             tMaxes.z += tDeltas.z;
         }
 
+        auto newTmin = std::min(std::min(tMaxes.x, tMaxes.y), tMaxes.z);
+
+        auto stepLength = newTmin - tMin;
+
+
+
         int coordinate = entryVoxel.x + entryVoxel.y * voxelCounts.x + entryVoxel.z * voxelCounts.x * voxelCounts.y;
 
         double density = this->voxels[coordinate].density;
 
-        accumulatedOpacity += transferFunction_opacity(density) * (1 - accumulatedOpacity);
+        accumulatedOpacity *= std::exp(-stepLength * density);
 
         if(accumulatedOpacity >= 1) {
             hit->accumulatedOpacity = 1.0;
@@ -219,7 +227,8 @@ void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit
 
     auto stepSize = (t1 - t0) / intervals;
 
-    float transparancy = 1.0;
+    double transparancy = 1.0;
+    double3 result = double3(0,0,0);
 
     for(int i = 0; i < intervals; i++) {
 
@@ -230,20 +239,38 @@ void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit
         int3 voxelPosition = calculateEntryVoxel(position, this->voxelCounts);
         int voxelCoordinate = voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y;
 
-        double density = triLinearInterpolation(position, voxelPosition);
+        double sampleAttenuation = std::exp(-stepSize * this->sigma_a);
 
-        double attenuation = std::exp(-stepSize * transferFunction_opacity(density));
-        transparancy *= attenuation;
+        transparancy *= sampleAttenuation;
 
-        if(transparancy <= EPSILON) {
-            hit->accumulatedOpacity = 1.0;
-            return;
+        auto light = scene->lights[0];
+
+        auto lightPosition = mul(i_transform, {light.position, 1}).xyz();
+
+        // std::cout << "Light Position: " << lightPosition.x << lightPosition.y << lightPosition.z << std::endl;
+
+        Ray lightRay = Ray(position, normalize(lightPosition - position));
+
+        double tMx = DBL_MAX;
+
+        if(testLightIntersection(lightRay,t, &tMx)) {
+            float lightAttenuation = std::exp(-tMx * this->sigma_a);
+            result += lightAttenuation * transparancy * stepSize * light.emission;
         }
+
+        if(transparancy < EPSILON) {
+            if(rand() > 1.f/2) {
+                break;
+            }
+            else {
+                transparancy *= 2;
+            }
+        }
+
     }
 
-    hit->accumulatedOpacity = 1.0 - transparancy;
-
-    return;
+    hit->accumulatedOpacity = transparancy;
+    hit->scatter = result;
 }
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
@@ -391,14 +418,7 @@ double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     return Df;
 }
 
-double Medium::testLightIntersection(Ray ray, double t_min, double t_max, Intersection *hit) {
-    /*
-    * Compute intersection with cube.
-    * Bottom back left corner is at (0,0,0)
-    * Top front right corner is at (1,1,1)
-    */
-
-    // Inverse ray direction to avoid division by zero
+bool Medium::testLightIntersection(Ray ray, double t_min, double* t_max) {
     double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
 
     double3 t0 = (minBound - ray.origin) * inv_dir;
@@ -410,23 +430,8 @@ double Medium::testLightIntersection(Ray ray, double t_min, double t_max, Inters
     double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
     double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
 
-    if (tmax_min < tmin_max) {
-        return false;
-    }
+    *t_max = tmax_min;
 
-    double t = tmin_max;
-
-    if (t < t_min || t > t_max) {
-        return false;
-    }
-
-    // std::cout << "Tmin: " << tmin_max << " Tmax: " << tmax_min << std::endl;
-
-    double3 start = ray.origin + ray.direction * tmin_max;
-    double3 end = ray.origin + ray.direction * tmax_min;
-
-
-    auto tMin = tmin_max;
-    auto tMax = tmax_min;
+    return true;
 }
 

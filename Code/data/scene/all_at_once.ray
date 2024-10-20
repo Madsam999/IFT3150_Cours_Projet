@@ -10,7 +10,7 @@ ambient_light [0.1 0.1 0.1] # Lumière ambiante associée à la lampe.
 Perspective 30.0 1.33 3 20
 
 # Comme gluLookAt.
-LookAt  -4  2  15 # position de l'oeil
+LookAt  0 1.25  15 # position de l'oeil
         0  0 0 # position du focus
         0 0.992278 -0.124035 # Vecteur up
 
@@ -162,7 +162,7 @@ PopMatrix
 PushMatrix
     Translate 0 0 0
     Scale 2 2 2
-    Medium 1000 500 1000 1
+    Medium 100 100 100 1
 PopMatrix
 
 ###############################################################################

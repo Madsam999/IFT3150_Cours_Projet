@@ -14,7 +14,7 @@ public:
 
     // Intersecte le rayon avec l'ensemble des objets dans l'intervalle spécifiée.
     // Retourne vrai s'il y a intersection sinon faux.
-	virtual bool intersect(Ray ray, double t_min, double t_max, Intersection* hit) = 0;
+	virtual bool intersect(Ray ray, double t_min, double t_max, Intersection* hit, bool grid) = 0;
 };
 
 // Structure contenant l'index et le AABB associé.
@@ -68,7 +68,7 @@ public:
     ~BVH() {};
 
     //À adapter pour BVH
-	bool intersect(Ray ray, double t_min, double t_max, Intersection* hit);
+	bool intersect(Ray ray, double t_min, double t_max, Intersection* hit, bool grid);
 private:
 
     // Fonction recursive permettant la construction de notre arbre BVH
@@ -123,5 +123,5 @@ public:
     ~Naive() {};
 
     //À adapter pour Naive
-	bool intersect(Ray ray, double t_min, double t_max, Intersection* hit);
+	bool intersect(Ray ray, double t_min, double t_max, Intersection* hit, bool grid);
 };
