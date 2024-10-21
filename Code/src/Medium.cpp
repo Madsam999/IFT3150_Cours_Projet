@@ -65,7 +65,7 @@ Medium::Medium(int voxel_x, int voxel_y, int voxel_z, int traversalType) {
             break;
     }
     createVoxels();
-    this->stepSize = 1/1000.0;
+    this->stepSize = 0.005;
 }
 
 bool Medium::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -84,12 +84,13 @@ void Medium::createVoxels() {
     }
 }
 
-double3 Medium::transferFunction_color(double density) const {
-    return mediumColor;
-}
-
 double Medium::transferFunction_opacity(double density) const {
     return density;
+}
+
+double Medium::HenyeyGreenstein(double cos_theta) {
+    double denominator = 1 + this->heneyGreensteinFactor * this->heneyGreensteinFactor - 2 * this->heneyGreensteinFactor * cos_theta;
+    return 1 / (4 * PI) * (1 - this->heneyGreensteinFactor * this->heneyGreensteinFactor) / (denominator * std::sqrt(denominator));
 }
 
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -131,31 +132,38 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
     auto tMin = tmin_max;
     auto tMax = tmax_min;
 
-    switch (this->traversalType) {
-        case 0:
+    switch (traversalType) {
+        case DDA:
             DDA_Traversal(start, end, hit, ray, tMin, tMax);
             break;
-        case 1:
+        case RegularStepRM:
             RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
             break;
-        case 2:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case RegularStepJitterRM:
             break;
-        case 3:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case MiddleRayVoxelRM:
             break;
-        case 4:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case MiddleRayVoxelJitterRM:
             break;
-
     }
-
-    hit->length = tmax_min - tmin_max;
-    hit->scatter = this->mediumColor;
 
     return true;
 }
 
+/**
+ * Does a DDA traversal of the medium.
+ *
+ * This implementation is based on the paper "A Fast Voxel Traversal Algorithm for Ray Tracing"
+ * by John Amanatides and Andrew Woo.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
 void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
     int3 entryVoxel, exitVoxel;
 
@@ -179,7 +187,7 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
                                        ((entryVoxel.z) * this->voxelSize.z - ray.origin.z) / ray.direction.z : DBL_MAX;
 
     int voxelCoordinate = entryVoxel.x + entryVoxel.y * voxelCounts.x + entryVoxel.z * voxelCounts.x * voxelCounts.y;
-    double3 accumulatedColor = transferFunction_color(this->voxels[voxelCoordinate].density);
+    // double3 accumulatedColor = transferFunction_color(this->voxels[voxelCoordinate].density);
     double accumulatedOpacity = 1;
     // accumulatedOpacity *= std::exp(0 * this->voxels[voxelCoordinate].density);
 
@@ -210,67 +218,72 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
         accumulatedOpacity *= std::exp(-stepLength * density);
 
         if(accumulatedOpacity >= 1) {
-            hit->accumulatedOpacity = 1.0;
+            // hit->accumulatedOpacity = 1.0;
             return;
         }
     }
 
-    hit->accumulatedOpacity = accumulatedOpacity;
+    // hit->accumulatedOpacity = accumulatedOpacity;
 }
 
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking regularly spaced steps along the ray.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
 void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
 
-    int intervals = static_cast<int>(std::ceil((tMax - tMin) / this->stepSize));
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
 
-    auto t0 = tMin;
-    auto t1 = tMax;
-
-    auto stepSize = (t1 - t0) / intervals;
-
-    double transparancy = 1.0;
-    double3 result = double3(0,0,0);
-
-    for(int i = 0; i < intervals; i++) {
-
-        auto t = t0 + (stepSize * i);
-
+    for(int n = 0; n < intervals; n++) {
+        double t = tMin + n * step;
         double3 position = ray.origin + ray.direction * t;
 
-        int3 voxelPosition = calculateEntryVoxel(position, this->voxelCounts);
-        int voxelCoordinate = voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y;
+        // Find the attenuation of the sample
+        float sampleAttenuation = std::exp(-step * (this->sigma_a + this->sigma_s));
 
-        double sampleAttenuation = std::exp(-stepSize * this->sigma_a);
+        transmittance *= sampleAttenuation;
 
-        transparancy *= sampleAttenuation;
+        SphericalLight lightToHit = scene->lights[0];
 
-        auto light = scene->lights[0];
+        // Convert the position of the light from global space to local space
+        double3 lightPosition = mul(i_transform, {lightToHit.position, 1}).xyz();
 
-        auto lightPosition = mul(i_transform, {light.position, 1}).xyz();
-
-        // std::cout << "Light Position: " << lightPosition.x << lightPosition.y << lightPosition.z << std::endl;
-
+        // Create the new light ray
         Ray lightRay = Ray(position, normalize(lightPosition - position));
 
-        double tMx = DBL_MAX;
+        // Shoot the ray towards the light and find the t value it leaves the medium
+        double t_light;
 
-        if(testLightIntersection(lightRay,t, &tMx)) {
-            float lightAttenuation = std::exp(-tMx * this->sigma_a);
-            result += lightAttenuation * transparancy * stepSize * light.emission;
+        if(lightMediumIntersection(lightRay, t, &t_light)) {
+            double cos_theta = dot(ray.direction, lightRay.direction);
+            // double phaseFunction = HenyeyGreenstein(cos_theta);
+            double lightAttenuation = std::exp(-t_light * (this->sigma_a + this->sigma_s));
+            colorResult += transmittance * lightToHit.emission * lightAttenuation * step * this->sigma_s;
         }
 
-        if(transparancy < EPSILON) {
-            if(rand() > 1.f/2) {
+        if(transmittance < 1e-3) {
+            if(rand() < 1.f/this->d) {
                 break;
             }
             else {
-                transparancy *= 2;
+                transmittance *= this->d;
             }
         }
-
     }
-
-    hit->accumulatedOpacity = transparancy;
-    hit->scatter = result;
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
 }
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
@@ -418,19 +431,27 @@ double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     return Df;
 }
 
-bool Medium::testLightIntersection(Ray ray, double t_min, double* t_max) {
-    double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
+bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
+    double3 inv_dir = double3(1/ray.direction.x, 1/ray.direction.y, 1/ray.direction.z);
 
-    double3 t0 = (minBound - ray.origin) * inv_dir;
-    double3 t1 = (maxBound - ray.origin) * inv_dir;
+    double tmin, tmax, tymin, tymax, tzmin, tzmax;
 
-    double3 tmin = min(t0, t1);
-    double3 tmax = max(t0, t1);
+    tmin = (minBound.x - ray.origin.x) * inv_dir.x;
+    tmax = (maxBound.x - ray.origin.x) * inv_dir.x;
+    tymin = (minBound.y - ray.origin.y) * inv_dir.y;
+    tymax = (maxBound.y - ray.origin.y) * inv_dir.y;
 
-    double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
-    double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
+    if ((tmin > tymax) || (tymin > tmax)) return false;
+    if (tymin > tmin) tmin = tymin;
+    if (tymax < tmax) tmax = tymax;
 
-    *t_max = tmax_min;
+    tzmin = (minBound.z - ray.origin.z) * inv_dir.z;
+    tzmax = (maxBound.z - ray.origin.z) * inv_dir.z;
+
+    if ((tmin > tzmax) || (tzmin > tmax)) return false;
+    if (tzmin > tmin) tmin = tzmin;
+    if (tzmax < tmax) tmax = tzmax;
+
 
     return true;
 }

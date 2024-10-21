@@ -196,15 +196,13 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
           refractedColor *= material.k_refraction;
       }
 
-      double3 finalColour = shade(scene, hit) + reflectedColor + refractedColor;
-
-      double transmittance = std::exp(-2 * 0.1);
+      double3 backGroundColor = shade(scene, hit) + reflectedColor + refractedColor;
 
       if(hit.hitGrid) {
-          *out_color = (finalColour * hit.accumulatedOpacity) + hit.scatter;
+          *out_color = backGroundColor * hit.transmittance + hit.scatter;
       }
       else {
-          *out_color = finalColour;
+          *out_color = backGroundColor;
       }
 
       *out_z_depth = hit.depth;

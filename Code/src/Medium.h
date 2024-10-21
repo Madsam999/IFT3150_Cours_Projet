@@ -35,7 +35,8 @@ public:
     double3 transferFunction_color(double density) const;
     double transferFunction_opacity(double density) const;
     double triLinearInterpolation(double3 position, int3 voxelPosition);
-    bool testLightIntersection(Ray ray, double t_min, double* t_max);
+    bool lightMediumIntersection(Ray ray, double t_min, double* t_max);
+    double HenyeyGreenstein(double cos_theta);
 
     enum TraversalType {
         DDA = 0,
@@ -63,9 +64,18 @@ public:
     double4x4 transform;
     double4x4 i_transform;
 
-    double sigma_a = 0.1;
+    double sigma_a = 0.03; // absorption coefficient
+    double sigma_s = 0.1; // scattering coefficient
+
+    double3 scatter = double3(0.5, 0.5, 0.5);
 
     Scene* scene;
+
+    double3 background_color = double3(1, 0, 0);
+
+    double heneyGreensteinFactor = 0;
+
+    double d = 2;
 };
 
 
