@@ -101,7 +101,6 @@ Material "cage"
 
 ###############################################################################
 
-#Front wall
 PushMatrix
     Translate 0 0 -3
     Quad 3 "blue"
@@ -111,7 +110,7 @@ PopMatrix
 PushMatrix
     Translate 1 0 -3
     Scale 1.5 1.5 1.5
-    Medium 100 100 100 1
+    Medium 100 100 100 4
 PopMatrix
 
 ###############################################################################

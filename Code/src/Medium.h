@@ -31,7 +31,11 @@ public:
     bool local_intersect(Ray ray, double t_min, double t_max, Intersection *hit);
     void createVoxels();
     void DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
-    void RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal_Regular_Step(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal_Regular_Step_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal_Middle_Ray_Voxel(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    void RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
+    bool RayMarching_Algorithm(double3 position, double *transmittance, double3 *scatter, double step, Ray ray, double t);
     double3 transferFunction_color(double density) const;
     double transferFunction_opacity(double density) const;
     double triLinearInterpolation(double3 position, int3 voxelPosition);

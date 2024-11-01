@@ -137,13 +137,16 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
             DDA_Traversal(start, end, hit, ray, tMin, tMax);
             break;
         case RegularStepRM:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+            RayMarching_Traversal_Regular_Step(start, end, hit, ray, tMin, tMax);
             break;
         case RegularStepJitterRM:
+            RayMarching_Traversal_Regular_Step_Jitter(start, end, hit, ray, tMin, tMax);
             break;
         case MiddleRayVoxelRM:
+            RayMarching_Traversal_Middle_Ray_Voxel(start, end, hit, ray, tMin, tMax);
             break;
         case MiddleRayVoxelJitterRM:
+            RayMarching_Traversal_Middle_Ray_Voxel_Jitter(start, end, hit, ray, tMin, tMax);
             break;
     }
 
@@ -239,7 +242,7 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
  * @param tMax
  * @return void
  */
-void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+void Medium::RayMarching_Traversal_Regular_Step(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
     int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
     double step = (tMax - tMin) / intervals;
 
@@ -250,41 +253,167 @@ void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit
         double t = tMin + n * step;
         double3 position = ray.origin + ray.direction * t;
 
-        // Find the attenuation of the sample
-        float sampleAttenuation = std::exp(-step * (this->sigma_a + this->sigma_s));
-
-        transmittance *= sampleAttenuation;
-
-        SphericalLight lightToHit = scene->lights[0];
-
-        // Convert the position of the light from global space to local space
-        double3 lightPosition = mul(i_transform, {lightToHit.position, 1}).xyz();
-
-        // Create the new light ray
-        Ray lightRay = Ray(position, normalize(lightPosition - position));
-
-        // Shoot the ray towards the light and find the t value it leaves the medium
-        double t_light;
-
-        if(lightMediumIntersection(lightRay, t, &t_light)) {
-            double cos_theta = dot(ray.direction, lightRay.direction);
-            // double phaseFunction = HenyeyGreenstein(cos_theta);
-            double lightAttenuation = std::exp(-t_light * (this->sigma_a + this->sigma_s));
-            colorResult += transmittance * lightToHit.emission * lightAttenuation * step * this->sigma_s;
-        }
-
-        if(transmittance < 1e-3) {
-            if(rand() < 1.f/this->d) {
-                break;
-            }
-            else {
-                transmittance *= this->d;
-            }
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
         }
     }
     hit->transmittance = transmittance;
     hit->scatter = colorResult;
 }
+
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking regularly spaced steps along the ray.
+ * It also adds a jitter to the step size to avoid aliasing artifacts.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Regular_Step_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
+
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
+
+    for(int n = 0; n < intervals; n++) {
+        double jitter = rand_double();
+        double t = tMin + (n + jitter) * step;
+        double3 position = ray.origin + ray.direction * t;
+
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
+
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking steps from the middle of the voxel.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Middle_Ray_Voxel(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
+
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
+
+    for(int n = 0; n < intervals; n++) {
+        double t = tMin + (n + 0.5) * step;
+        double3 position = ray.origin + ray.direction * t;
+
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
+
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking steps from the middle of the voxel.
+ * It also adds a jitter to the step size to avoid aliasing artifacts.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
+
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
+
+    for(int n = 0; n < intervals; n++) {
+        double jitter = rand_double() - 0.5;
+        double t = tMin + (n + jitter) * step;
+        double3 position = ray.origin + ray.direction * t;
+
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
+
+
+/**
+ * Since the algrithm for ray marching doesn't change from version to version, this function is used to
+ * execute the logic of the ray marching algorithm. It will be called by the 4 different versions of ray marchers
+ * (regular steps, regular steps with jitter, middle of voxel and middle of voxel with jitter).
+ *
+ * The reason why the function returns a boolean, is beacuse the calling ray marching function needs to know when it
+ * can break from the loop. This is done when the transmittance is less than 1e-3 and the random number is less than 1/d.
+ *
+ * @param position
+ * @param transmittance
+ * @param colorResult
+ * @param step
+ * @param ray
+ * @param t
+ * @return bool
+ */
+bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, double3 *colorResult, double step , Ray ray, double t) {
+    // Find the attenuation of the sample
+    float sampleAttenuation = std::exp(-step * (this->sigma_a + this->sigma_s));
+
+    *transmittance *= sampleAttenuation;
+
+    SphericalLight lightToHit = scene->lights[0];
+
+    // Convert the position of the light from global space to local space
+    double3 lightPosition = mul(i_transform, {lightToHit.position, 1}).xyz();
+
+    // Create the new light ray
+    Ray lightRay = Ray(position, normalize(lightPosition - position));
+
+    // Shoot the ray towards the light and find the t value it leaves the medium
+    double t_light;
+
+    if(lightMediumIntersection(lightRay, t, &t_light)) {
+        double cos_theta = dot(ray.direction, lightRay.direction);
+        double phaseFunction = HenyeyGreenstein(cos_theta);
+        double lightAttenuation = std::exp(-t_light * (this->sigma_a + this->sigma_s));
+        *colorResult += *transmittance * lightToHit.emission * lightAttenuation * step * this->sigma_s;
+    }
+
+    if(*transmittance < 1e-3) {
+        if(rand() < 1.f/this->d) {
+            return true;
+        }
+        else {
+            *transmittance *= this->d;
+        }
+    }
+
+    return false;
+}
+
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     int x[2], y[2], z[2];
