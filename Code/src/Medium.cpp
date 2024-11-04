@@ -37,62 +37,6 @@ Voxel::Voxel(double density): density(density) {
 // #########################################################################
 
 // ############################## Medium Class ##############################
-void Medium::setup_transform(double4x4 m) {
-    this->transform = m;
-    this->i_transform = inverse(m);
-}
-
-Medium::Medium(int voxel_x, int voxel_y, int voxel_z, int traversalType) {
-    this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
-    this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
-    this->voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
-    this->mediumColor = double3(62.0, 163.0, 194.0) / 255.0;
-    switch (traversalType) {
-        case 0:
-            this->traversalType = DDA;
-            break;
-        case 1:
-            this->traversalType = RegularStepRM;
-            break;
-        case 2:
-            this->traversalType = RegularStepJitterRM;
-            break;
-        case 3:
-            this->traversalType = MiddleRayVoxelRM;
-            break;
-        case 4:
-            this->traversalType = MiddleRayVoxelJitterRM;
-            break;
-    }
-    createVoxels();
-    this->stepSize = 0.005;
-}
-
-bool Medium::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
-    Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
-    return local_intersect(lray, t_min, t_max, hit);
-}
-
-void Medium::createVoxels() {
-    for(int x = 0; x < voxelCounts.x; x++) {
-        for (int y = 0; y < voxelCounts.y; y++) {
-            for (int z = 0; z < voxelCounts.z; z++) {
-                double density = rand_double();
-                this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = Voxel(density);
-            }
-        }
-    }
-}
-
-double Medium::transferFunction_opacity(double density) const {
-    return density;
-}
-
-double Medium::HenyeyGreenstein(double cos_theta) {
-    double denominator = 1 + this->heneyGreensteinFactor * this->heneyGreensteinFactor - 2 * this->heneyGreensteinFactor * cos_theta;
-    return 1 / (4 * PI) * (1 - this->heneyGreensteinFactor * this->heneyGreensteinFactor) / (denominator * std::sqrt(denominator));
-}
-
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
 
     /*
