@@ -86,6 +86,18 @@ Material "green"
         "refractive_index"   1.0
     "k_reflection" 0
 
+Material "yellow"
+    "texture_albedo" ""
+    "color_albedo" [1 0.5 0]
+    "k_ambient"   0.1
+    "k_diffuse"   0.6
+    "k_specular"  0.5
+    "shininess" 30.0
+    "metallic" 0.5
+    "k_refraction" 0
+        "refractive_index"   1.0
+    "k_reflection" 0
+
 Material "cage"
     "texture_albedo" "data/assets/texture/cage.bmp"
     "color_albedo" [0.6 0.6 0.6]
@@ -108,9 +120,9 @@ PopMatrix
 
 #Medium
 PushMatrix
-    Translate 1 0 -3
+    Translate 0.3 0 -3
     Scale 1.5 1.5 1.5
-    Medium 100 100 100 4
+    Medium 100 100 100 1
 PopMatrix
 
 ###############################################################################
@@ -121,4 +133,5 @@ PopMatrix
 #Lumière blanche
 SphericalLight 1.6 1 0 # Position x y z
     "emission" [1 1 1]    # Intensité [r g b]
-    "radius"  0.2                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+    "radius"  0                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+

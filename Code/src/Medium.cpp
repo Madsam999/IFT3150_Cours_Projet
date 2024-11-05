@@ -15,26 +15,13 @@ double ceil_epsilon(double x) {
     return std::ceil(x - EPSILON);
 }
 
-int3 calculateEntryVoxel(double3 start, int3 voxelCounts) {
+int3 worldToVoxelCoord(double3 start, int3 voxelCounts) {
     int x = start.x < 1.0 ? start.x * voxelCounts.x : voxelCounts.x - 1;
     int y = start.y < 1.0 ? start.y * voxelCounts.y : voxelCounts.y - 1;
     int z = start.z < 1.0 ? start.z * voxelCounts.z : voxelCounts.z - 1;
     return int3(x, y, z);
 }
-
-int3 calculateExitVoxel(double3 end, int3 voxelCounts) {
-    int x = end.x < 1.0 ? end.x * voxelCounts.x : voxelCounts.x - 1;
-    int y = end.y < 1.0 ? end.y * voxelCounts.y : voxelCounts.y - 1;
-    int z = end.z < 1.0 ? end.z * voxelCounts.z : voxelCounts.z - 1;
-    return int3(x, y, z);
-}
 // ###############################################################################
-
-// ############################## Voxel Class ##############################
-Voxel::Voxel(double density): density(density) {
-    this->density = density;
-}
-// #########################################################################
 
 // ############################## Medium Class ##############################
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
@@ -114,8 +101,8 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
 void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
     int3 entryVoxel, exitVoxel;
 
-    entryVoxel = calculateEntryVoxel(start, this->voxelCounts);
-    exitVoxel = calculateExitVoxel(end, this->voxelCounts);
+    entryVoxel = worldToVoxelCoord(start, this->voxelCounts);
+    exitVoxel = worldToVoxelCoord(end, this->voxelCounts);
 
     double3 tDeltas;
     tDeltas.x = ray.direction.x != 0.0 ? this->voxelSize.x / std::abs(ray.direction.x) : DBL_MAX;
@@ -307,7 +294,7 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double
 
 
 /**
- * Since the algrithm for ray marching doesn't change from version to version, this function is used to
+ * Since the algorithm for ray marching doesn't change from version to version, this function is used to
  * execute the logic of the ray marching algorithm. It will be called by the 4 different versions of ray marchers
  * (regular steps, regular steps with jitter, middle of voxel and middle of voxel with jitter).
  *
@@ -323,35 +310,32 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double
  * @return bool
  */
 bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, double3 *colorResult, double step , Ray ray, double t) {
+    // Generate on the fly the density of the medium using Perlin noise
+    double density = std::abs(noise(position.x, position.y, position.z) * (1 - falloff));
     // Find the attenuation of the sample
-    float sampleAttenuation = std::exp(-step * (this->sigma_a + this->sigma_s));
+    double sampleAttenuation = std::exp(-step * this->sigma_t * density);
 
     *transmittance *= sampleAttenuation;
 
-    SphericalLight lightToHit = scene->lights[0];
+    for(auto light: this->scene->lights) {
+        double3 lightPosition = mul(i_transform, {light.position, 1}).xyz();
+        Ray lightRay = Ray(position, normalize(lightPosition - position));
+        double t_light;
 
-    // Convert the position of the light from global space to local space
-    double3 lightPosition = mul(i_transform, {lightToHit.position, 1}).xyz();
-
-    // Create the new light ray
-    Ray lightRay = Ray(position, normalize(lightPosition - position));
-
-    // Shoot the ray towards the light and find the t value it leaves the medium
-    double t_light;
-
-    if(lightMediumIntersection(lightRay, t, &t_light)) {
-        double cos_theta = dot(ray.direction, lightRay.direction);
-        double phaseFunction = HenyeyGreenstein(cos_theta);
-        double lightAttenuation = std::exp(-t_light * (this->sigma_a + this->sigma_s));
-        *colorResult += *transmittance * lightToHit.emission * lightAttenuation * step * this->sigma_s;
-    }
-
-    if(*transmittance < 1e-3) {
-        if(rand() < 1.f/this->d) {
-            return true;
+        if(lightMediumIntersection(lightRay, t, &t_light)) {
+            double cos_theta = dot(ray.direction, lightRay.direction);
+            double phaseFunction = HenyeyGreenstein(cos_theta);
+            double lightAttenuation = std::exp(-t_light * this->sigma_t * density);
+            *colorResult += *transmittance * light.emission * lightAttenuation * step * this->sigma_s * density * phaseFunction;
         }
-        else {
-            *transmittance *= this->d;
+
+        if(*transmittance < 1e-3) {
+            if(rand() < 1.f/this->d) {
+                return true;
+            }
+            else {
+                *transmittance *= this->d;
+            }
         }
     }
 
@@ -525,6 +509,7 @@ bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
     if (tzmin > tmin) tmin = tzmin;
     if (tzmax < tmax) tmax = tzmax;
 
+    *t_max = tmax;
 
     return true;
 }
