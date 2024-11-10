@@ -122,7 +122,7 @@ PopMatrix
 PushMatrix
     Translate 0.3 0 -3
     Scale 1.5 1.5 1.5
-    Medium 100 100 100 1
+    Medium 100 100 100 2 # qt of voxels x y z, density
 PopMatrix
 
 ###############################################################################
@@ -132,6 +132,6 @@ PopMatrix
 
 #Lumière blanche
 SphericalLight 1.6 1 0 # Position x y z
-    "emission" [1 1 1]    # Intensité [r g b]
+    "emission" [0 1 0]    # Intensité [r g b]
     "radius"  0                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
 

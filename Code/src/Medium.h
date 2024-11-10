@@ -68,8 +68,35 @@ public:
         }
         for (size_t i = 0; i < 256; i++)
             p[256 + i] = p[i] = permutation[i];
-        createVoxels();
+
         this->stepSize = 0.005;
+        /*
+        // Read density values from binary (.bin) file
+        std::ifstream ifs;
+        ifs.open("C:\\Users\\samue\\OneDrive\\Documents\\Universite\\Codes\\IFT3150_Cours_Projet\\Code\\data\\assets\\density_data\\grid.15.bin", std::ios::binary);
+        if (!ifs) {
+            std::cerr << "Failed to open file." << std::endl;
+            exit(1);
+        }
+        int totalVoxels = voxel_x * voxel_y * voxel_z;
+        std::vector<float> densities(totalVoxels);
+
+        // Read each density value one by one and print it
+        for (size_t i = 0; i < totalVoxels; ++i) {
+            ifs.read(reinterpret_cast<char*>(&densities[i]), sizeof(float));
+
+            if (!ifs) {
+                std::cerr << "Error reading from file." << std::endl;
+            }
+
+            // Print each density value
+            std::cout << "Density[" << i << "]: " << densities[i] << std::endl;
+        }
+
+        ifs.close();
+        */
+
+        makeShereInGrid(1);
     }
     /**
      *
@@ -83,6 +110,7 @@ public:
         Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
         return local_intersect(lray, t_min, t_max, hit);
     }
+
     /**
      *
      * @param density
@@ -131,10 +159,14 @@ public:
         return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
     }
 
-    double noise(double x, double y, double z) {
+    double noise(double3 position) {
+        double x = position.x,
+               y = position.y,
+               z = position.z;
+
         int X = (int)floor(x) & 255,
-                Y = (int)floor(y) & 255,
-                Z = (int)floor(z) & 255;
+            Y = (int)floor(y) & 255,
+            Z = (int)floor(z) & 255;
         x -= floor(x);
         y -= floor(y);
         z -= floor(z);
@@ -144,6 +176,28 @@ public:
                             lerp(u, grad(p[AB], x, y - 1, z), grad(p[BB], x - 1, y - 1, z))),
                     lerp(v, lerp(u, grad(p[AA + 1], x, y, z - 1), grad(p[BA + 1], x - 1, y, z - 1)),
                          lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1))));
+    }
+
+    void makeShereInGrid(int radius) {
+        for (int x = 0; x < voxelCounts.x; x++) {
+            for (int y = 0; y < voxelCounts.y; y++) {
+                for (int z = 0; z < voxelCounts.z; z++) {
+                    double3 position;
+                    position.x = (x + 0.5) / voxelCounts.x;
+                    position.y = (y + 0.5) / voxelCounts.y;
+                    position.z = (z + 0.5) / voxelCounts.z;
+                    double3 center = double3(0.5, 0.5, 0.5);
+                    double distance = length(position - center);
+                    voxel v;
+                    v.density = 0;
+                    voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
+                    if (distance < 0.5) {
+                        double density = (1 + noise(position)) / 2;
+                        voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y].density = density;
+                    }
+                }
+            }
+        }
     }
 
     /*
@@ -191,8 +245,8 @@ public:
     double4x4 transform;
     double4x4 i_transform;
 
-    double sigma_a = 0.1; // absorption coefficient
-    double sigma_s = 0.5; // scattering coefficient
+    double sigma_a = 0.01; // absorption coefficient
+    double sigma_s = 0.95; // scattering coefficient
     double sigma_t = sigma_a + sigma_s; // extinction coefficient
 
     double3 scatter = double3(0.5, 0.5, 0.5);
@@ -227,6 +281,8 @@ public:
     };
 
     int p[512];
+
+
 };
 
 
