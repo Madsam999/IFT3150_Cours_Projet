@@ -1,5 +1,5 @@
 #Meta argument for the actual scene
-dimension 640 480 #Largeur Hauteur
+dimension 1920 1080 #Largeur Hauteur
 container "Naive" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.
@@ -120,8 +120,8 @@ PopMatrix
 
 #Medium
 PushMatrix
-    Translate 0.3 0 -3
-    Scale 1.5 1.5 1.5
+    Translate -2 0 -4
+    Scale 4 4 4
     Medium 100 100 100 2 # qt of voxels x y z, density
 PopMatrix
 
@@ -132,6 +132,6 @@ PopMatrix
 
 #Lumière blanche
 SphericalLight 1.6 1 0 # Position x y z
-    "emission" [0 1 0]    # Intensité [r g b]
+    "emission" [1 1 1]    # Intensité [r g b]
     "radius"  0                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
 
