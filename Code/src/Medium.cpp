@@ -15,83 +15,15 @@ double ceil_epsilon(double x) {
     return std::ceil(x - EPSILON);
 }
 
-int3 calculateEntryVoxel(double3 start, int3 voxelCounts) {
+int3 worldToVoxelCoord(double3 start, int3 voxelCounts) {
     int x = start.x < 1.0 ? start.x * voxelCounts.x : voxelCounts.x - 1;
     int y = start.y < 1.0 ? start.y * voxelCounts.y : voxelCounts.y - 1;
     int z = start.z < 1.0 ? start.z * voxelCounts.z : voxelCounts.z - 1;
     return int3(x, y, z);
 }
-
-int3 calculateExitVoxel(double3 end, int3 voxelCounts) {
-    int x = end.x < 1.0 ? end.x * voxelCounts.x : voxelCounts.x - 1;
-    int y = end.y < 1.0 ? end.y * voxelCounts.y : voxelCounts.y - 1;
-    int z = end.z < 1.0 ? end.z * voxelCounts.z : voxelCounts.z - 1;
-    return int3(x, y, z);
-}
 // ###############################################################################
 
-// ############################## Voxel Class ##############################
-Voxel::Voxel(double density): density(density) {
-    this->density = density;
-}
-// #########################################################################
-
 // ############################## Medium Class ##############################
-void Medium::setup_transform(double4x4 m) {
-    this->transform = m;
-    this->i_transform = inverse(m);
-}
-
-Medium::Medium(int voxel_x, int voxel_y, int voxel_z, int traversalType) {
-    this->voxelCounts = int3(voxel_x, voxel_y, voxel_z);
-    this->voxels = std::vector<Voxel>(voxelCounts.x * voxelCounts.y * voxelCounts.z);
-    this->voxelSize = double3(1.0 / voxel_x, 1.0 / voxel_y, 1.0 / voxel_z);
-    this->mediumColor = double3(62.0, 163.0, 194.0) / 255.0;
-    switch (traversalType) {
-        case 0:
-            this->traversalType = DDA;
-            break;
-        case 1:
-            this->traversalType = RegularStepRM;
-            break;
-        case 2:
-            this->traversalType = RegularStepJitterRM;
-            break;
-        case 3:
-            this->traversalType = MiddleRayVoxelRM;
-            break;
-        case 4:
-            this->traversalType = MiddleRayVoxelJitterRM;
-            break;
-    }
-    createVoxels();
-    this->stepSize = 1/1000.0;
-}
-
-bool Medium::intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
-    Ray lray{mul(i_transform, {ray.origin,1}).xyz(), mul(i_transform, {ray.direction,0}).xyz()};
-    return local_intersect(lray, t_min, t_max, hit);
-}
-
-void Medium::createVoxels() {
-    for(int x = 0; x < voxelCounts.x; x++) {
-        for (int y = 0; y < voxelCounts.y; y++) {
-            for (int z = 0; z < voxelCounts.z; z++) {
-                double density = rand_double();
-                this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = Voxel(density);
-            }
-        }
-    }
-}
-
-double3 Medium::transferFunction_color(double density) const {
-    return mediumColor;
-}
-
-double Medium::transferFunction_opacity(double density) const {
-    return density;
-}
-
 bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *hit) {
 
     /*
@@ -131,36 +63,46 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
     auto tMin = tmin_max;
     auto tMax = tmax_min;
 
-    switch (this->traversalType) {
-        case 0:
+    switch (traversalType) {
+        case DDA:
             DDA_Traversal(start, end, hit, ray, tMin, tMax);
             break;
-        case 1:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case RegularStepRM:
+            RayMarching_Traversal_Regular_Step(start, end, hit, ray, tMin, tMax);
             break;
-        case 2:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case RegularStepJitterRM:
+            RayMarching_Traversal_Regular_Step_Jitter(start, end, hit, ray, tMin, tMax);
             break;
-        case 3:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case MiddleRayVoxelRM:
+            RayMarching_Traversal_Middle_Ray_Voxel(start, end, hit, ray, tMin, tMax);
             break;
-        case 4:
-            RayMarching_Traversal(start, end, hit, ray, tMin, tMax);
+        case MiddleRayVoxelJitterRM:
+            RayMarching_Traversal_Middle_Ray_Voxel_Jitter(start, end, hit, ray, tMin, tMax);
             break;
-
     }
-
-    hit->length = tmax_min - tmin_max;
-    hit->scatter = this->mediumColor;
 
     return true;
 }
 
+/**
+ * Does a DDA traversal of the medium.
+ *
+ * This implementation is based on the paper "A Fast Voxel Traversal Algorithm for Ray Tracing"
+ * by John Amanatides and Andrew Woo.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
 void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
     int3 entryVoxel, exitVoxel;
 
-    entryVoxel = calculateEntryVoxel(start, this->voxelCounts);
-    exitVoxel = calculateExitVoxel(end, this->voxelCounts);
+    entryVoxel = worldToVoxelCoord(start, this->voxelCounts);
+    exitVoxel = worldToVoxelCoord(end, this->voxelCounts);
 
     double3 tDeltas;
     tDeltas.x = ray.direction.x != 0.0 ? this->voxelSize.x / std::abs(ray.direction.x) : DBL_MAX;
@@ -179,7 +121,7 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
                                        ((entryVoxel.z) * this->voxelSize.z - ray.origin.z) / ray.direction.z : DBL_MAX;
 
     int voxelCoordinate = entryVoxel.x + entryVoxel.y * voxelCounts.x + entryVoxel.z * voxelCounts.x * voxelCounts.y;
-    double3 accumulatedColor = transferFunction_color(this->voxels[voxelCoordinate].density);
+    // double3 accumulatedColor = transferFunction_color(this->voxels[voxelCoordinate].density);
     double accumulatedOpacity = 1;
     // accumulatedOpacity *= std::exp(0 * this->voxels[voxelCoordinate].density);
 
@@ -210,68 +152,198 @@ void Medium::DDA_Traversal(double3 start, double3 end, Intersection *hit, Ray ra
         accumulatedOpacity *= std::exp(-stepLength * density);
 
         if(accumulatedOpacity >= 1) {
-            hit->accumulatedOpacity = 1.0;
+            // hit->accumulatedOpacity = 1.0;
             return;
         }
     }
 
-    hit->accumulatedOpacity = accumulatedOpacity;
+    // hit->accumulatedOpacity = accumulatedOpacity;
 }
 
-void Medium::RayMarching_Traversal(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking regularly spaced steps along the ray.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Regular_Step(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
 
-    int intervals = static_cast<int>(std::ceil((tMax - tMin) / this->stepSize));
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
 
-    auto t0 = tMin;
-    auto t1 = tMax;
-
-    auto stepSize = (t1 - t0) / intervals;
-
-    double transparancy = 1.0;
-    double3 result = double3(0,0,0);
-
-    for(int i = 0; i < intervals; i++) {
-
-        auto t = t0 + (stepSize * i);
-
+    for(int n = 0; n < intervals; n++) {
+        double t = tMin + n * step;
         double3 position = ray.origin + ray.direction * t;
 
-        int3 voxelPosition = calculateEntryVoxel(position, this->voxelCounts);
-        int voxelCoordinate = voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y;
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
 
-        double sampleAttenuation = std::exp(-stepSize * this->sigma_a);
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking regularly spaced steps along the ray.
+ * It also adds a jitter to the step size to avoid aliasing artifacts.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Regular_Step_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
 
-        transparancy *= sampleAttenuation;
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
 
-        auto light = scene->lights[0];
+    for(int n = 0; n < intervals; n++) {
+        double jitter = rand_double();
+        double t = tMin + (n + jitter) * step;
+        double3 position = ray.origin + ray.direction * t;
 
-        auto lightPosition = mul(i_transform, {light.position, 1}).xyz();
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
 
-        // std::cout << "Light Position: " << lightPosition.x << lightPosition.y << lightPosition.z << std::endl;
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking steps from the middle of the voxel.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Middle_Ray_Voxel(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
 
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
+
+    for(int n = 0; n < intervals; n++) {
+        double t = tMin + (n + 0.5) * step;
+        double3 position = ray.origin + ray.direction * t;
+
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
+
+/**
+ * Does a ray marching traversal of the medium.
+ *
+ * This implementation traverses the medium by taking steps from the middle of the voxel.
+ * It also adds a jitter to the step size to avoid aliasing artifacts.
+ *
+ * @param start
+ * @param end
+ * @param hit
+ * @param ray
+ * @param tMin
+ * @param tMax
+ * @return void
+ */
+void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax) {
+    int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
+    double step = (tMax - tMin) / intervals;
+
+    double transmittance = 1.0;
+    double3 colorResult = double3(0,0,0);
+
+    for(int n = 0; n < intervals; n++) {
+        double jitter = rand_double() - 0.5;
+        double t = tMin + (n + jitter) * step;
+        double3 position = ray.origin + ray.direction * t;
+
+        if(RayMarching_Algorithm(position, &transmittance, &colorResult, step, ray, t)) {
+            break;
+        }
+    }
+    hit->transmittance = transmittance;
+    hit->scatter = colorResult;
+}
+
+
+/**
+ * Since the algorithm for ray marching doesn't change from version to version, this function is used to
+ * execute the logic of the ray marching algorithm. It will be called by the 4 different versions of ray marchers
+ * (regular steps, regular steps with jitter, middle of voxel and middle of voxel with jitter).
+ *
+ * The reason why the function returns a boolean, is beacuse the calling ray marching function needs to know when it
+ * can break from the loop. This is done when the transmittance is less than 1e-3 and the random number is less than 1/d.
+ *
+ * @param position
+ * @param transmittance
+ * @param colorResult
+ * @param step
+ * @param ray
+ * @param t
+ * @return bool
+ */
+bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, double3 *colorResult, double step , Ray ray, double t) {
+    // Generate on the fly the density of the medium using Perlin noise
+    int3 voxelPosition = worldToVoxelCoord(position, this->voxelCounts);
+    double density = triLinearInterpolation(position, voxelPosition);
+    //double density = voxels[voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y].density;
+    // Find the attenuation of the sample
+    double sampleAttenuation = std::exp(-step * this->sigma_t * density);
+
+    *transmittance *= sampleAttenuation;
+
+    for(auto light: this->scene->lights) {
+        double3 lightPosition = mul(i_transform, {light.position, 1}).xyz();
         Ray lightRay = Ray(position, normalize(lightPosition - position));
+        double t_light;
 
-        double tMx = DBL_MAX;
-
-        if(testLightIntersection(lightRay,t, &tMx)) {
-            float lightAttenuation = std::exp(-tMx * this->sigma_a);
-            result += lightAttenuation * transparancy * stepSize * light.emission;
+        if(lightMediumIntersection(lightRay, t, &t_light)) {
+            double cos_theta = dot(ray.direction, lightRay.direction);
+            double phaseFunction = HenyeyGreenstein(cos_theta);
+            double lightAttenuation = std::exp(-t_light * this->sigma_t * density);
+            *colorResult += *transmittance * light.emission * lightAttenuation * step * this->sigma_s * density * phaseFunction;
         }
 
-        if(transparancy < EPSILON) {
-            if(rand() > 1.f/2) {
-                break;
+        if(*transmittance < 1e-3) {
+            if(rand() < 1.f/this->d) {
+                return true;
             }
             else {
-                transparancy *= 2;
+                *transmittance *= this->d;
             }
         }
-
     }
 
-    hit->accumulatedOpacity = transparancy;
-    hit->scatter = result;
+    return false;
 }
+
 
 double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     int x[2], y[2], z[2];
@@ -418,19 +490,28 @@ double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     return Df;
 }
 
-bool Medium::testLightIntersection(Ray ray, double t_min, double* t_max) {
-    double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
+bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
+    double3 inv_dir = double3(1/ray.direction.x, 1/ray.direction.y, 1/ray.direction.z);
 
-    double3 t0 = (minBound - ray.origin) * inv_dir;
-    double3 t1 = (maxBound - ray.origin) * inv_dir;
+    double tmin, tmax, tymin, tymax, tzmin, tzmax;
 
-    double3 tmin = min(t0, t1);
-    double3 tmax = max(t0, t1);
+    tmin = (minBound.x - ray.origin.x) * inv_dir.x;
+    tmax = (maxBound.x - ray.origin.x) * inv_dir.x;
+    tymin = (minBound.y - ray.origin.y) * inv_dir.y;
+    tymax = (maxBound.y - ray.origin.y) * inv_dir.y;
 
-    double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
-    double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
+    if ((tmin > tymax) || (tymin > tmax)) return false;
+    if (tymin > tmin) tmin = tymin;
+    if (tymax < tmax) tmax = tymax;
 
-    *t_max = tmax_min;
+    tzmin = (minBound.z - ray.origin.z) * inv_dir.z;
+    tzmax = (maxBound.z - ray.origin.z) * inv_dir.z;
+
+    if ((tmin > tzmax) || (tzmin > tmax)) return false;
+    if (tzmin > tmin) tmin = tzmin;
+    if (tzmax < tmax) tmax = tzmax;
+
+    *t_max = tmax;
 
     return true;
 }
