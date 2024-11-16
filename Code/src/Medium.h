@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <iosfwd>
+#include <iomanip>
 #include "linalg/linalg.h"
 #include "basic.h"
 #include "aabb.h"
@@ -70,33 +72,8 @@ public:
             p[256 + i] = p[i] = permutation[i];
 
         this->stepSize = 0.005;
-        /*
-        // Read density values from binary (.bin) file
-        std::ifstream ifs;
-        ifs.open("C:\\Users\\samue\\OneDrive\\Documents\\Universite\\Codes\\IFT3150_Cours_Projet\\Code\\data\\assets\\density_data\\grid.15.bin", std::ios::binary);
-        if (!ifs) {
-            std::cerr << "Failed to open file." << std::endl;
-            exit(1);
-        }
-        int totalVoxels = voxel_x * voxel_y * voxel_z;
-        std::vector<float> densities(totalVoxels);
-
-        // Read each density value one by one and print it
-        for (size_t i = 0; i < totalVoxels; ++i) {
-            ifs.read(reinterpret_cast<char*>(&densities[i]), sizeof(float));
-
-            if (!ifs) {
-                std::cerr << "Error reading from file." << std::endl;
-            }
-
-            // Print each density value
-            std::cout << "Density[" << i << "]: " << densities[i] << std::endl;
-        }
-
-        ifs.close();
-        */
-
-        createVoxels();
+        // Read density values from text file
+        readDensityFromFile();
     }
     /**
      *
@@ -218,8 +195,8 @@ public:
         vp_xform.y = vp.y;
         vp_xform.z = vp.x * sin(theta) + vp.z * cos(theta);
 
-        double dist = std::min(1.0, length(vp_xform) / 0.5);
-        double falloff = smoothstep(0.8, 1, dist);
+        // double dist = std::min(1.0, length(vp_xform) / 0.5);
+        //double falloff = smoothstep(0.8, 1, dist);
         double freq = 0.5;
         float lacunarity = 2.7;
         float H = 0.4;
@@ -228,10 +205,53 @@ public:
         float fbmResult = 0;
         double3 offset = double3(0.1, 0.15, 0.25);
         for (size_t k = 0; k < octaves; k++) {
-            fbmResult += noise(vp_xform + offset) * pow(lacunarity, -H * k);
+            fbmResult += noise(vp_xform) * pow(lacunarity, -H * k);
             vp_xform *= lacunarity;
         }
-        return std::max(0.f, fbmResult) * (1 - falloff);//(1 - falloff);//std::max(0.f, fbmResult);// * (1 - falloff));
+        return std::max(0.f, fbmResult);//(1 - falloff);//std::max(0.f, fbmResult);// * (1 - falloff));
+    }
+
+    void writeDensityToFile() {
+        std::ofstream file ("test_grid_2.txt");
+
+        if(!file) {
+            std::cerr << "Could not open file." << std::endl;
+            return;
+        }
+
+        file << std::fixed << std::setprecision(7);
+
+        for(int x = 0; x < voxelCounts.x; x++) {
+            for (int y = 0; y < voxelCounts.y; y++) {
+                for (int z = 0; z < voxelCounts.z; z++) {
+                    double3 position;
+                    position.x = (x + 0.5) / voxelCounts.x;
+                    position.y = (y + 0.5) / voxelCounts.y;
+                    position.z = (z + 0.5) / voxelCounts.z;
+                    file << eval_density(position) << std::endl;
+                }
+            }
+        }
+
+        file.close();
+    }
+
+    void readDensityFromFile() {
+        std::ifstream file ("test_grid_2.txt");
+
+        if(!file.is_open()) {
+            std::cerr << "Could not open file." << std::endl;
+            return;
+        }
+
+        std::string line;
+        int i = 0;
+        while (std::getline(file, line)) {
+            voxels[i].density = std::stod(line);
+            i++;
+        }
+
+        file.close();
     }
 
     /*

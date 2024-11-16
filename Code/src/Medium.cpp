@@ -312,7 +312,8 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double
 bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, double3 *colorResult, double step , Ray ray, double t) {
     // Generate on the fly the density of the medium using Perlin noise
     int3 voxelPosition = worldToVoxelCoord(position, this->voxelCounts);
-    double density = voxels[voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y].density;
+    double density = triLinearInterpolation(position, voxelPosition);
+    //double density = voxels[voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y].density;
     // Find the attenuation of the sample
     double sampleAttenuation = std::exp(-step * this->sigma_t * density);
 
