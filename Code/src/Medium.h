@@ -96,7 +96,7 @@ public:
         ifs.close();
         */
 
-        makeShereInGrid(1);
+        createVoxels();
     }
     /**
      *
@@ -121,7 +121,7 @@ public:
             for (int y = 0; y < voxelCounts.y; y++) {
                 for (int z = 0; z < voxelCounts.z; z++) {
                     voxel v;
-                    v.density = rand_double();
+                    v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
                     this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                 }
             }
@@ -192,12 +192,46 @@ public:
                     v.density = 0;
                     voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                     if (distance < 0.5) {
-                        double density = (1 + noise(position)) / 2;
+                        double density = eval_density(position);
                         voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y].density = density;
                     }
                 }
             }
         }
+    }
+
+    double smoothstep(double edge0, double edge1, double x) {
+        double t = std::clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+        return t * t * (3 - 2 * t);
+    }
+
+    /*
+     * Only works for a circle right now, since that's how Mr. Scratch wants it!
+     */
+    double eval_density(double3 position) {
+        double3 vp = position - center;
+        double3 vp_xform;
+
+        // Rotate the point around the y-axis
+        double theta = PI/4;
+        vp_xform.x = vp.x * cos(theta) - vp.z * sin(theta);
+        vp_xform.y = vp.y;
+        vp_xform.z = vp.x * sin(theta) + vp.z * cos(theta);
+
+        double dist = std::min(1.0, length(vp_xform) / 0.5);
+        double falloff = smoothstep(0.8, 1, dist);
+        double freq = 0.5;
+        float lacunarity = 2.7;
+        float H = 0.4;
+        size_t octaves = 5;
+        vp_xform *= freq;
+        float fbmResult = 0;
+        double3 offset = double3(0.1, 0.15, 0.25);
+        for (size_t k = 0; k < octaves; k++) {
+            fbmResult += noise(vp_xform + offset) * pow(lacunarity, -H * k);
+            vp_xform *= lacunarity;
+        }
+        return std::max(0.f, fbmResult) * (1 - falloff);//(1 - falloff);//std::max(0.f, fbmResult);// * (1 - falloff));
     }
 
     /*
@@ -281,6 +315,8 @@ public:
     };
 
     int p[512];
+
+    double3 center = double3(0.5, 0.5, 0.5);
 
 
 };
