@@ -196,7 +196,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
           refractedColor *= material.k_refraction;
       }
 
-      double3 backGroundColor = shade(scene, hit) + reflectedColor + refractedColor;
+      double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
 
       if(hit.hitGrid) {
           *out_color = backGroundColor * hit.transmittance + hit.scatter;
@@ -313,7 +313,7 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
       double3 diskNormal = normalize(hit.position - light.position);
       double3 diskCenter = light.position;
 
-      for (int i = 0; i < 10; ++i) {
+      for (int i = 0; i < SOFT_SHADOWS_SAMPLES; ++i) {
         // Random point on the disk of radius light.radius
         double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
 
@@ -342,7 +342,7 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
           visibleRays++;
         }
       }
-      lightReceived = visibleRays / SOFT_SHADOWS_SAMPLES;
+      lightReceived *= visibleRays / SOFT_SHADOWS_SAMPLES;
     }
 
     if (light.radius == 0) {
@@ -352,10 +352,9 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
           continue;
         }
       }
-    } else {
-      if (lightReceived == 0) {
+    }
+    if (lightReceived == 0) {
         continue;
-      }
     }
 
     // If the light is not occluded, calculate the contribution
@@ -375,14 +374,164 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
         (m * colorAlbedo + (1 - m)) * (k_s * light.emission * pow(nDotH, n)) /
         pow(lightDistance, 2);
 
-    if (light.radius == 0) {
-      diffuseContribution += diffuseContributionWithoutShadow;
-      blinnContribution += blinnContributionWithoutShadow;
-    } else {
-      diffuseContribution += diffuseContributionWithoutShadow * lightReceived;
-      blinnContribution += blinnContributionWithoutShadow * lightReceived;
-    }
+    diffuseContribution += diffuseContributionWithoutShadow;
+    blinnContribution += blinnContributionWithoutShadow;
   }
 
   return ambiantContribution + diffuseContribution + blinnContribution;
+}
+
+double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
+    Material &material = ResourceManager::Instance()->materials[hit.key_material];
+
+    auto k_a = material.k_ambient;
+    auto k_d = material.k_diffuse;
+    auto k_s = material.k_specular;
+    auto normal = hit.normal;
+    auto hitPosition = hit.position;
+    auto m = material.metallic;
+    auto n = material.shininess;
+    auto cameraPosition = scene.camera.position;
+    double3 color(0, 0, 0);
+    double3 colorAlbedo;
+
+    // If there's no texture present;
+    if (material.texture_albedo.height() == 0 || material.texture_albedo.width() == 0) {
+        colorAlbedo = material.color_albedo;
+    } else {
+        auto x = hit.uv.x * material.texture_albedo.width();
+        auto y = hit.uv.y * material.texture_albedo.height();
+        colorAlbedo = UVMap(x, y, material.texture_albedo);
+    }
+
+    std::vector<SphericalLight> lights = scene.lights;
+    double3 ambiantLight = scene.ambient_light;
+
+    color = ambiantLight * k_a * colorAlbedo;
+
+    double3 diffuseContribution(0, 0, 0);
+    double3 blinnContribution(0, 0, 0);
+
+    for(int i = 0; i < lights.size(); i++) {
+        SphericalLight light = lights[i];
+        Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
+        double3 toLight = normalize(light.position - hit.position);
+        double lightDistance = length(light.position - hit.position);
+        Intersection shadowHit;
+        // Is the alpha(x) in the formula I(x) = (1 - alpha(x)) * I_light;
+        // This formula is used to calculate the intensity of light reaching the object after passing through the medium;
+        double lightBlocked;
+
+        // If the light is juste a point in space
+        if(light.radius == 0) {
+            /*
+             * If the light is juste a point in space, we simply have to check if the
+             * shadow ray is occluded by something in the scene. If the shadow ray hits
+             * an object, then 100% of the light is blocked. However, if the shadow ray
+             * hits the particpating medium, then some percent of the light gets blocked (depends
+             * on the accumulated opacity when traversing the medium). If the shadow ray doesn't hit
+             * anything, then the light is not blocked at all.
+             */
+            if(scene.container->intersect(shadowRay, EPSILON, lightDistance, &shadowHit, true)) {
+                /* If we enter this block, then the ray does hit something. We now need to check if that intersection
+                 * is closer than the light itself. If it is, then the light is blocked. If it isn't, then the light is not.
+                 * If the intersection is after the light we can simply set the lightBlocked to the transmittance of the shadowHit,
+                 * which is the accumulated opacity of the medium. If it doesn't hit the medium, then the transmittance is 0, meaning
+                 * that 0% of light is occluded.
+                 */
+                if(shadowHit.depth < lightDistance) {
+                    lightBlocked = 1.0;
+                }
+                else {
+                    lightBlocked = shadowHit.transmittance;
+                }
+            }
+            else {
+                lightBlocked = shadowHit.transmittance;
+            }
+            // Evaluate the shading model;
+            // Calculate the intensity of the light that reaches the object;
+            double3 lightIntensity = (1 - lightBlocked) * light.emission;
+            // Evaluate the diffuse contribution;
+            double nDotL = std::max(dot(normal, toLight), 0.0);
+            diffuseContribution.x += (colorAlbedo.x * lightIntensity.x * k_d * nDotL);
+            diffuseContribution.y += (colorAlbedo.y * lightIntensity.y * k_d * nDotL);
+            diffuseContribution.z += (colorAlbedo.z * lightIntensity.z * k_d * nDotL);
+
+            // Evaluate the specular contribution;
+            double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+            double nDotH = std::max(dot(normal, bisector), 0.0);
+            blinnContribution.x += (m * colorAlbedo.x + (1 - m)) * (k_s * lightIntensity.x * pow(nDotH, n));
+            blinnContribution.y += (m * colorAlbedo.y + (1 - m)) * (k_s * lightIntensity.y * pow(nDotH, n));
+            blinnContribution.z += (m * colorAlbedo.z + (1 - m)) * (k_s * lightIntensity.z * pow(nDotH, n));
+        }
+        // If the light is an actual sphere with a non 0 radius
+        else {
+            /* If the light is an actual sphere with a non 0 radius, then we also have to take into account the soft shadows
+             * that the light will produce. In order to do so, we simply shoot multiple rays from the intersection point to random
+             * points on the sphere. Similar to the point light, if the ray hits an object, then the light is blocked. If it hits the
+             * medium, then the light is partially blocked. If it doesn't hit anything, then the light is not blocked at all. We then
+             * calculate the percentage of light that is not blocked and use that to calculate the contribution of the light to the pixel.
+             */
+            double3 diskNormal = normalize(hit.position - light.position);
+            double3 diskCenter = light.position;
+            int visibleRays = 0;
+            double3 diffuseContributionWithoutShadow = double3(0,0,0);
+            double3 blinnContributionWithoutShadow = double3(0,0,0);
+            for(int j = 0; j < SOFT_SHADOWS_SAMPLES; j++) {
+                double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
+                double3 firstDiskDirectorVector = normalize(abs(diskNormal.x) > abs(diskNormal.y) ? double3(-diskNormal.z, 0, diskNormal.x) : double3(0, -diskNormal.z, diskNormal.y));
+                double3 secondDiskDirectorVector = normalize(cross(diskNormal, firstDiskDirectorVector));
+                double3 randomPoint3D = diskCenter + randomPointOnDisk.x * firstDiskDirectorVector + randomPointOnDisk.y * secondDiskDirectorVector;
+                double3 shadowRayDir = normalize(randomPoint3D - hit.position);
+                double distanceToLight = length(randomPoint3D - hit.position);
+                Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, shadowRayDir);
+                if(scene.container->intersect(shadowRay, EPSILON, distanceToLight, &shadowHit, true)) {
+                    /* If we enter this block, then the ray does hit something. We now need to check if that intersection
+                    * is closer than the light itself. If it is, then the light is blocked. If it isn't, then the light is not.
+                    * If the intersection is after the light we can simply set the lightBlocked to the transmittance of the shadowHit,
+                    * which is the accumulated opacity of the medium. If it doesn't hit the medium, then the transmittance is 0, meaning
+                    * that 0% of light is occluded.
+                    */
+                    if(shadowHit.depth < distanceToLight) {
+                        lightBlocked = 1.0;
+                    }
+                    else {
+                        lightBlocked = shadowHit.transmittance;
+                        visibleRays++;
+                    }
+                }
+                else {
+                    lightBlocked = shadowHit.transmittance;
+                    visibleRays++;
+                }
+                // Evaluate the shading model;
+                // Calculate the intensity of the light that reaches the object;
+                // Evaluate an occlusion factor based off of the amount of visible rays;
+                double occlusionFactor = visibleRays / SOFT_SHADOWS_SAMPLES;
+                double3 lightIntensity = (1 - lightBlocked) * light.emission;
+                // Evaluate the diffuse contribution with the occlusion factor;
+                double nDotL = std::max(dot(normal, toLight), 0.0);
+                diffuseContributionWithoutShadow.x += (colorAlbedo.x * lightIntensity.x * k_d * nDotL) * occlusionFactor;
+                diffuseContributionWithoutShadow.y += (colorAlbedo.y * lightIntensity.y * k_d * nDotL)  * occlusionFactor;
+                diffuseContributionWithoutShadow.z += (colorAlbedo.z * lightIntensity.z * k_d * nDotL)  * occlusionFactor;
+
+                // Evaluate the specular contribution with the occlusion factor;
+                double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+                double nDotH = std::max(dot(normal, bisector), 0.0);
+                blinnContributionWithoutShadow.x += (m * colorAlbedo.x + (1 - m)) * (k_s * lightIntensity.x * pow(nDotH, n)) * occlusionFactor;
+                blinnContributionWithoutShadow.y += (m * colorAlbedo.y + (1 - m)) * (k_s * lightIntensity.y * pow(nDotH, n))  * occlusionFactor;
+                blinnContributionWithoutShadow.z += (m * colorAlbedo.z + (1 - m)) * (k_s * lightIntensity.z * pow(nDotH, n))  * occlusionFactor;
+            }
+            // Average the color based off of the number of rays sent;
+            diffuseContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
+            blinnContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
+            diffuseContribution += diffuseContributionWithoutShadow;
+            blinnContribution += blinnContributionWithoutShadow;
+        }
+    }
+
+    color += diffuseContribution + blinnContribution;
+
+    return color;
 }

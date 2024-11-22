@@ -313,7 +313,6 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
     // Generate on the fly the density of the medium using Perlin noise
     int3 voxelPosition = worldToVoxelCoord(position, this->voxelCounts);
     double density = triLinearInterpolation(position, voxelPosition);
-    // double density = voxels[voxelPosition.x + voxelPosition.y * voxelCounts.x + voxelPosition.z * voxelCounts.x * voxelCounts.y].density;
     // Find the attenuation of the sample
     double sampleAttenuation = std::exp(-step * this->sigma_t * density);
 
@@ -324,12 +323,39 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
         Ray lightRay = Ray(position, normalize(lightPosition - position));
         double t_light;
 
-        if(lightMediumIntersection(lightRay, t, &t_light)) {
-            double cos_theta = dot(ray.direction, lightRay.direction);
-            double phaseFunction = HenyeyGreenstein(cos_theta);
-            double lightAttenuation = std::exp(-t_light * this->sigma_t * density);
-            *colorResult += *transmittance * light.emission * lightAttenuation * step * this->sigma_s * density * phaseFunction;
+        // Use epsilon to avoid self intersection;
+        if(!lightMediumIntersection(lightRay, EPSILON, &t_light)) {
+            continue;
         }
+        // Check if the light ray is blocked by an object;
+        if(!this->scene->container->intersect(lightRay, EPSILON, t_light, nullptr, false)) {
+            continue;
+        }
+
+        /* If the light ray is reaches the light source and isn't blocked by an object, then we raymarch along that ray to evaluate
+         * the amount of light reaching the point.
+         */
+
+        double lightTransmittance = 1.0;
+        double lightDistance = t_light;
+        int lightIntervals = static_cast<int>(std::ceil(lightDistance / step));
+        double lightStep = lightDistance / lightIntervals;
+        for(int n = 0; n < lightIntervals; n++) {
+            double lightT = n * lightStep;
+            double3 lightPosition = lightRay.origin + lightRay.direction * lightT;
+            int3 lightVoxelPosition = worldToVoxelCoord(lightPosition, this->voxelCounts);
+            double lightDensity = triLinearInterpolation(lightPosition, lightVoxelPosition);
+            double lightSampleAttenuation = std::exp(-lightStep * this->sigma_t * lightDensity);
+            lightTransmittance *= lightSampleAttenuation;
+        }
+
+        double3 viewDir = -ray.direction;
+        double3 lightDir = lightRay.direction;
+        double cosTheta = dot(normalize(viewDir), normalize(lightDir));
+        double phaseFunction = HenyeyGreenstein(cosTheta);
+        double3 lightColor = light.emission;
+        double3 lightIntensity = lightColor * lightTransmittance * phaseFunction;
+        *colorResult += lightIntensity * *transmittance * density * step * this->sigma_s;
 
         if(*transmittance < 1e-3) {
             if(rand() < 1.f/this->d) {

@@ -47,4 +47,7 @@ private:
     // Renvoie la couleur calculée au point d'intersection.
 	static double3 shade(const Scene& scene,
                         Intersection hit);
+
+    static double3 newShade(const Scene& scene,
+                        Intersection hit);
 };

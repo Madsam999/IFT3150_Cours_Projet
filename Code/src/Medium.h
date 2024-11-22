@@ -73,7 +73,7 @@ public:
 
         this->stepSize = 0.005;
         // Read density values from text file
-        createVoxels();
+        makeShereInGrid(voxel_x);
     }
     /**
      *
