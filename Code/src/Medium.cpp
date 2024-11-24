@@ -32,6 +32,8 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
      * Top front right corner is at (1,1,1)
      */
 
+    // TODO: Consider the case where the ray origin is inside the medium
+
     // Inverse ray direction to avoid division by zero
     double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
 

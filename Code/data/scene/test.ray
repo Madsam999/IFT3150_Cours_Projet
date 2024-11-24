@@ -1,5 +1,5 @@
 #Meta argument for the actual scene
-dimension 1920 1080 #Largeur Hauteur
+dimension 640 480 #Largeur Hauteur
 container "Naive" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.

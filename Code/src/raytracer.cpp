@@ -198,7 +198,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
       double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
 
       if(hit.hitGrid) {
-          *out_color = backGroundColor * hit.transmittance + hit.scatter;
+          *out_color = backGroundColor * hit.transmittance + double3(0,0,0);
       }
       else {
           *out_color = backGroundColor;

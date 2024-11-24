@@ -73,7 +73,7 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
-        makeShereInGrid(voxel_x);
+        readDensityFromFile();
     }
     /**
      *
@@ -299,8 +299,8 @@ public:
     double4x4 transform;
     double4x4 i_transform;
 
-    double sigma_a = 0.01; // absorption coefficient
-    double sigma_s = 0.5; // scattering coefficient
+    double sigma_a = 0.2; // absorption coefficient
+    double sigma_s = 0.9; // scattering coefficient
     double sigma_t = sigma_a + sigma_s; // extinction coefficient
 
     double3 scatter = double3(0.5, 0.5, 0.5);
