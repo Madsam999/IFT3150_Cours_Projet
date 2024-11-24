@@ -50,4 +50,5 @@ private:
 
     static double3 newShade(const Scene& scene,
                         Intersection hit);
+
 };

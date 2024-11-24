@@ -85,7 +85,6 @@ void Raytracer::render(const Scene &scene, Frame *output) {
 
         ray.origin = scene.camera.position;
         ray.direction = normalize(pixelPosition - ray.origin);
-        // std::cout << "Starting Trace" << std::endl;
         trace(scene, ray, ray_depth, &ray_color, &out_z_depth);
         avg_z_depth += out_z_depth;
         avg_ray_color += ray_color;
@@ -454,9 +453,9 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
             double3 lightIntensity = (1 - lightBlocked) * light.emission;
             // Evaluate the diffuse contribution;
             double nDotL = std::max(dot(normal, toLight), 0.0);
-            diffuseContribution.x += (colorAlbedo.x * lightIntensity.x * k_d * nDotL);
-            diffuseContribution.y += (colorAlbedo.y * lightIntensity.y * k_d * nDotL);
-            diffuseContribution.z += (colorAlbedo.z * lightIntensity.z * k_d * nDotL);
+            diffuseContribution.x += ((colorAlbedo.x * lightIntensity.x * k_d * nDotL) * lightIntensity.x);
+            diffuseContribution.y += ((colorAlbedo.y * lightIntensity.y * k_d * nDotL) * lightIntensity.y);
+            diffuseContribution.z += ((colorAlbedo.z * lightIntensity.z * k_d * nDotL) * lightIntensity.z);
 
             // Evaluate the specular contribution;
             double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));

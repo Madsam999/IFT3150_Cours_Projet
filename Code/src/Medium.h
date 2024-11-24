@@ -71,7 +71,7 @@ public:
         for (size_t i = 0; i < 256; i++)
             p[256 + i] = p[i] = permutation[i];
 
-        this->stepSize = 0.005;
+        this->stepSize = 0.05;
         // Read density values from text file
         makeShereInGrid(voxel_x);
     }
@@ -300,7 +300,7 @@ public:
     double4x4 i_transform;
 
     double sigma_a = 0.01; // absorption coefficient
-    double sigma_s = 0.95; // scattering coefficient
+    double sigma_s = 0.5; // scattering coefficient
     double sigma_t = sigma_a + sigma_s; // extinction coefficient
 
     double3 scatter = double3(0.5, 0.5, 0.5);
@@ -309,7 +309,7 @@ public:
 
     double3 background_color = double3(1, 0, 0);
 
-    double heneyGreensteinFactor = -1;
+    double heneyGreensteinFactor = 0;
 
     double d = 2;
 

@@ -327,11 +327,12 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
         if(!lightMediumIntersection(lightRay, EPSILON, &t_light)) {
             continue;
         }
+        /*
         // Check if the light ray is blocked by an object;
-        if(!this->scene->container->intersect(lightRay, EPSILON, t_light, nullptr, false)) {
+        if(!this->scene->container->intersect(lightRay, EPSILON, 1000000, nullptr, false)) {
             continue;
         }
-
+         */
         /* If the light ray is reaches the light source and isn't blocked by an object, then we raymarch along that ray to evaluate
          * the amount of light reaching the point.
          */
@@ -525,19 +526,35 @@ bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
     tmax = (maxBound.x - ray.origin.x) * inv_dir.x;
     tymin = (minBound.y - ray.origin.y) * inv_dir.y;
     tymax = (maxBound.y - ray.origin.y) * inv_dir.y;
-
-    if ((tmin > tymax) || (tymin > tmax)) return false;
-    if (tymin > tmin) tmin = tymin;
-    if (tymax < tmax) tmax = tymax;
-
     tzmin = (minBound.z - ray.origin.z) * inv_dir.z;
     tzmax = (maxBound.z - ray.origin.z) * inv_dir.z;
 
-    if ((tmin > tzmax) || (tzmin > tmax)) return false;
-    if (tzmin > tmin) tmin = tzmin;
-    if (tzmax < tmax) tmax = tzmax;
+    // Since the ray is inside the volume, some of the t values will be negative.
+    // Since some of them will be negative, we can ignore them.
 
-    *t_max = tmax;
+    double tMaxX, tMaxY, tMaxZ;
+    if (tmin < 0.0) {
+        tMaxX = tmax;
+    }
+    else {
+        tMaxX = tmin;
+    }
+
+    if (tymin < 0.0) {
+        tMaxY = tymax;
+    }
+    else {
+        tMaxY = tymin;
+    }
+
+    if (tzmin < 0.0) {
+        tMaxZ = tzmax;
+    }
+    else {
+        tMaxZ = tzmin;
+    }
+
+    *t_max = std::min(tMaxX, std::min(tMaxY, tMaxZ));
 
     return true;
 }
