@@ -198,7 +198,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
       double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
 
       if(hit.hitGrid) {
-          *out_color = backGroundColor * hit.transmittance + double3(0,0,0);
+          *out_color = backGroundColor * hit.transmittance + hit.scatter;
       }
       else {
           *out_color = backGroundColor;
@@ -414,13 +414,14 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
     for(int i = 0; i < lights.size(); i++) {
         SphericalLight light = lights[i];
         Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
-        double3 toLight = normalize(light.position - hit.position);
-        double lightDistance = length(light.position - hit.position);
+        double3 toLight = light.position - hit.position;
+        double lightDistance = length(toLight);
+        toLight = normalize(toLight);
         Intersection shadowHit;
         // Is the alpha(x) in the formula I(x) = (1 - alpha(x)) * I_light;
         // This formula is used to calculate the intensity of light reaching the object after passing through the medium;
         double lightBlocked;
-
+        double3 lightIntensity = light.emission;
         // If the light is juste a point in space
         if(light.radius == 0) {
             /*
@@ -431,38 +432,32 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
              * on the accumulated opacity when traversing the medium). If the shadow ray doesn't hit
              * anything, then the light is not blocked at all.
              */
-            if(scene.container->intersect(shadowRay, EPSILON, lightDistance, &shadowHit, true)) {
-                /* If we enter this block, then the ray does hit something. We now need to check if that intersection
-                 * is closer than the light itself. If it is, then the light is blocked. If it isn't, then the light is not.
-                 * If the intersection is after the light we can simply set the lightBlocked to the transmittance of the shadowHit,
-                 * which is the accumulated opacity of the medium. If it doesn't hit the medium, then the transmittance is 0, meaning
-                 * that 0% of light is occluded.
-                 */
-                if(shadowHit.depth < lightDistance) {
-                    lightBlocked = 1.0;
+            if(!scene.container->intersect(shadowRay, EPSILON, lightDistance, &shadowHit, true)) {
+                // If the shadow ray doesn't hit any objects;
+                if(shadowHit.hitGrid) {
+                    lightBlocked = shadowHit.transmittance;
+                    lightIntensity = lightBlocked * light.emission;
                 }
                 else {
-                    lightBlocked = shadowHit.transmittance;
+                    lightBlocked = 0;
+                    lightIntensity = (1 - lightBlocked) * light.emission;
                 }
             }
             else {
-                lightBlocked = shadowHit.transmittance;
+                // If the shadow ray hits an object;
+                lightBlocked = 1.0;
+                lightIntensity = (1 - lightBlocked) * light.emission;
             }
             // Evaluate the shading model;
             // Calculate the intensity of the light that reaches the object;
-            double3 lightIntensity = (1 - lightBlocked) * light.emission;
             // Evaluate the diffuse contribution;
             double nDotL = std::max(dot(normal, toLight), 0.0);
-            diffuseContribution.x += ((colorAlbedo.x * lightIntensity.x * k_d * nDotL) * lightIntensity.x);
-            diffuseContribution.y += ((colorAlbedo.y * lightIntensity.y * k_d * nDotL) * lightIntensity.y);
-            diffuseContribution.z += ((colorAlbedo.z * lightIntensity.z * k_d * nDotL) * lightIntensity.z);
+            diffuseContribution += (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
 
             // Evaluate the specular contribution;
             double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
             double nDotH = std::max(dot(normal, bisector), 0.0);
-            blinnContribution.x += (m * colorAlbedo.x + (1 - m)) * (k_s * lightIntensity.x * pow(nDotH, n));
-            blinnContribution.y += (m * colorAlbedo.y + (1 - m)) * (k_s * lightIntensity.y * pow(nDotH, n));
-            blinnContribution.z += (m * colorAlbedo.z + (1 - m)) * (k_s * lightIntensity.z * pow(nDotH, n));
+            blinnContribution += (0.5 * colorAlbedo + (1 - 0.5)) * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
         }
         // If the light is an actual sphere with a non 0 radius
         else {

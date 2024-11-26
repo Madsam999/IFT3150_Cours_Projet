@@ -208,7 +208,7 @@ public:
             fbmResult += noise(vp_xform) * pow(lacunarity, -H * k);
             vp_xform *= lacunarity;
         }
-        return std::max(0.f, fbmResult);//(1 - falloff);//std::max(0.f, fbmResult);// * (1 - falloff));
+        return fbmResult;
     }
 
     void writeDensityToFile() {
@@ -266,7 +266,7 @@ public:
     bool RayMarching_Algorithm(double3 position, double *transmittance, double3 *scatter, double step, Ray ray, double t);
 
     double triLinearInterpolation(double3 position, int3 voxelPosition);
-    bool lightMediumIntersection(Ray ray, double t_min, double* t_max);
+    void lightMediumIntersection(Ray ray, double t_min, double* t_max);
 
     double HenyeyGreenstein(double cos_theta) {
         double denominator = 1 + this->heneyGreensteinFactor * this->heneyGreensteinFactor - 2 * this->heneyGreensteinFactor * cos_theta;
@@ -299,7 +299,7 @@ public:
     double4x4 transform;
     double4x4 i_transform;
 
-    double sigma_a = 0.2; // absorption coefficient
+    double sigma_a = 0.5; // absorption coefficient
     double sigma_s = 0.9; // scattering coefficient
     double sigma_t = sigma_a + sigma_s; // extinction coefficient
 

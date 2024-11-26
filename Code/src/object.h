@@ -93,7 +93,7 @@ public:
     // La clé associée au matériel utilisé.
     std::string key_material;
 
-    double transmittance = 0;
+    double transmittance = 1.0;
     double3 scatter;
 
     bool hitGrid = false;

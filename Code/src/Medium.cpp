@@ -32,38 +32,46 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
      * Top front right corner is at (1,1,1)
      */
 
-    // TODO: Consider the case where the ray origin is inside the medium
-
     // Inverse ray direction to avoid division by zero
     double3 inv_dir = {1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z};
 
-    double3 t0 = (minBound - ray.origin) * inv_dir;
-    double3 t1 = (maxBound - ray.origin) * inv_dir;
+    // Compute intersection with the bounding box
+    /*
+     * If all three components of the ray's origin are within the [0,1] range, then the ray is inside the medium and we
+     * only have to find an exit point (since the tMin is going to be 0). Otherwise, if it's only one or two of the three
+     * components, then we have to find the entry and exit points of the ray, because it's entering and exiting the medium.
+     */
 
-    double3 tmin = min(t0, t1);
-    double3 tmax = max(t0, t1);
+    double3 start, end;
+    double tMin, tMax;
 
-    double tmin_max = std::max(tmin.x, std::max(tmin.y, tmin.z));
-    double tmax_min = std::min(tmax.x, std::min(tmax.y, tmax.z));
+    if(ray.origin.x >= 0 && ray.origin.x <= 1 && ray.origin.y >= 0 && ray.origin.y <= 1 && ray.origin.z >= 0 && ray.origin.z <= 1) {
+        // The ray is entirely inside the medium;
+        // We only have to find the exit point;
+        double tExitX = ray.direction.x > 0 ? (1 - ray.origin.x) * inv_dir.x : (0 - ray.origin.x) * inv_dir.x;
+        double tExitY = ray.direction.y > 0 ? (1 - ray.origin.y) * inv_dir.y : (0 - ray.origin.y) * inv_dir.y;
+        double tExitZ = ray.direction.z > 0 ? (1 - ray.origin.z) * inv_dir.z : (0 - ray.origin.z) * inv_dir.z;
 
-    if (tmax_min < tmin_max) {
-        return false;
+        tMax = std::min(tExitX, std::min(tExitY, tExitZ));
+        tMin = 0;
+        if(tMax < t_min || tMax > t_max) {
+            return false;
+        }
+        start = ray.origin;
+        end = ray.origin + ray.direction * tMax;
     }
+    else {
+        double3 t0 = (minBound - ray.origin) * inv_dir;
+        double3 t1 = (maxBound - ray.origin) * inv_dir;
 
-    double t = tmin_max;
+        double3 tmin = min(t0, t1);
+        double3 tmax = max(t0, t1);
 
-    if (t < t_min || t > t_max) {
-        return false;
+        tMin = std::max(std::max(tmin.x, tmin.y), tmin.z);
+        tMax = std::min(std::min(tmax.x, tmax.y), tmax.z);
+        start = ray.origin + ray.direction * tMin;
+        end = ray.origin + ray.direction * tMax;
     }
-
-    // std::cout << "Tmin: " << tmin_max << " Tmax: " << tmax_min << std::endl;
-
-    double3 start = ray.origin + ray.direction * tmin_max;
-    double3 end = ray.origin + ray.direction * tmax_min;
-
-
-    auto tMin = tmin_max;
-    auto tMax = tmax_min;
 
     switch (traversalType) {
         case DDA:
@@ -323,25 +331,32 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
     for(auto light: this->scene->lights) {
         double3 lightPosition = mul(i_transform, {light.position, 1}).xyz();
         Ray lightRay = Ray(position, normalize(lightPosition - position));
+        double distanceToLight = length(lightPosition - position);
         double t_light;
 
         // Use epsilon to avoid self intersection;
-        if(!lightMediumIntersection(lightRay, EPSILON, &t_light)) {
-            continue;
-        }
-        /*
+        // This function finds the exit point of the light ray;
+        lightMediumIntersection(lightRay, EPSILON, &t_light);
+
+        Intersection lightHit;
         // Check if the light ray is blocked by an object;
-        if(!this->scene->container->intersect(lightRay, EPSILON, 1000000, nullptr, false)) {
+        if(this->scene->container->intersect(lightRay, EPSILON, distanceToLight, &lightHit, false)) {
             continue;
         }
-         */
+
         /* If the light ray is reaches the light source and isn't blocked by an object, then we raymarch along that ray to evaluate
          * the amount of light reaching the point.
          */
 
         double lightTransmittance = 1.0;
-        double lightDistance = t_light;
-        int lightIntervals = static_cast<int>(std::ceil(lightDistance / step));
+        double lightDistance;
+        if(t_light <= EPSILON) {
+            lightDistance = 0;
+        }
+        else {
+            lightDistance = t_light;
+        }
+        int lightIntervals = static_cast<int>(std::ceil(lightDistance / this->stepSize));
         double lightStep = lightDistance / lightIntervals;
         for(int n = 0; n < lightIntervals; n++) {
             double lightT = n * lightStep;
@@ -519,7 +534,7 @@ double Medium::triLinearInterpolation(double3 position, int3 voxelPosition) {
     return Df;
 }
 
-bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
+void Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
     double3 inv_dir = double3(1/ray.direction.x, 1/ray.direction.y, 1/ray.direction.z);
 
     double tmin, tmax, tymin, tymax, tzmin, tzmax;
@@ -557,7 +572,5 @@ bool Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
     }
 
     *t_max = std::min(tMaxX, std::min(tMaxY, tMaxZ));
-
-    return true;
 }
 
