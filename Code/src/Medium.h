@@ -73,7 +73,7 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
-        readDensityFromFile();
+        makeShereInGrid(voxel_x);
     }
     /**
      *
@@ -309,7 +309,7 @@ public:
 
     double3 background_color = double3(1, 0, 0);
 
-    double heneyGreensteinFactor = 0;
+    double heneyGreensteinFactor = -0.6;
 
     double d = 2;
 

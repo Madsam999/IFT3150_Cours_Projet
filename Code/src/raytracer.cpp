@@ -3,381 +3,312 @@
 #define SOFT_SHADOWS_SAMPLES 10
 
 void Raytracer::render(const Scene &scene, Frame *output) {
-  // Crée le z_buffer.
-  // NOTE: zbuffer est un pointeur vers un array de doubles de taille
-  // resolution[0]
-  // * resolution[1] aka le nombre de pixels dans l'image.
+    // Crée le z_buffer.
+    // NOTE: zbuffer est un pointeur vers un array de doubles de taille
+    // resolution[0] * resolution[1], aka le nombre de pixels dans l'image.
 
-  // pour aider à se retrouver
-  int resolutionX = scene.resolution[0];
-  int resolutionY = scene.resolution[1];
+    int resolutionX = scene.resolution[0];
+    int resolutionY = scene.resolution[1];
 
-  double *z_buffer = new double[scene.resolution[0] * scene.resolution[1]];
-  for (int i = 0; i < scene.resolution[0] * scene.resolution[1]; i++) {
-    z_buffer[i] = scene.camera.z_far; // Anciennement DBL_MAX. À remplacer avec
-                                      // la valeur de scene.camera.z_far
-  }
-
-  // Camera(void) : fovy(45), aspect(1.0), z_near(1.0), z_far(10000.0),
-  //                position(0.0, 0.0, 0.0), center(0.0, 0.0, 1.0), up(0.0, 1.0,
-  //                0.0) {}
-
-  // Camera(void) : fovy(45), aspect(1.0), z_near(1.0), z_far(10000.0),
-  //                position(0.0, 0.0, 0.0), center(0.0, 0.0, 1.0), up(0.0, 1.0,
-  //                0.0) {}
-
-  // Calcule les paramètres de la caméra pour les rayons.
-  double top =
-      tan(deg2rad(scene.camera.fovy) / 2.0) * std::fabs(scene.camera.z_near);
-  double right = top * resolutionX / resolutionY;
-  double bottom = -top;
-  double left = -right;
-
-  // @@@@@@ VOTRE CODE ICI
-  // Calculez les paramètres de la caméra pour les rayons.
-
-  // Itère sur tous les pixels de l'image.
-  for (int y = 0; y < scene.resolution[1]; y++) {
-    if (y % 40) {
-      std::cout << "\rScanlines completed: " << y << "/" << scene.resolution[1]
-                << '\r';
+    double *z_buffer = new double[resolutionX * resolutionY];
+    for (int i = 0; i < resolutionX * resolutionY; i++) {
+        z_buffer[i] = scene.camera.z_far; // Anciennement DBL_MAX. À remplacer avec la valeur de scene.camera.z_far
     }
 
-    for (int x = 0; x < scene.resolution[0]; x++) {
+    // Calcule les paramètres de la caméra pour les rayons.
+    double top = tan(deg2rad(scene.camera.fovy) / 2.0) * std::fabs(scene.camera.z_near);
+    double right = top * resolutionX / resolutionY;
+    double bottom = -top;
+    double left = -right;
 
-      int avg_z_depth = 0;
-      double3 avg_ray_color{0, 0, 0};
+    // @@@@@@ VOTRE CODE ICI
+    // Calculez les paramètres de la caméra pour les rayons.
 
-      for (int iray = 0; iray < scene.samples_per_pixel; iray++) {
-        // Génère le rayon approprié pour ce pixel.
-        Ray ray;
-        // Initialise la profondeur de récursivité du rayon.
-        int ray_depth = 0;
-        double3 ray_color{0, 0, 0}; // Initialize la couleur du rayon
+    std::ofstream file;
+    file.open("output.txt");
 
-        double out_z_depth = scene.camera.z_far;
+    // Itère sur tous les pixels de l'image.
+    for (int y = 0; y < resolutionY; y++) {
+        if (y % 40) {
+            std::cout << "\rScanlines completed: " << y << "/" << resolutionY << '\r';
+        }
 
-        // @@@@@@ VOTRE CODE ICI
-        // Mettez en place le rayon primaire en utilisant les paramètres de la
-        // caméra. Lancez le rayon de manière uniformément aléatoire à
-        // l'intérieur du pixel dans la zone délimité par jitter_radius.
-        // Faites la moyenne des différentes couleurs obtenues suite à la
-        // récursion.
+        for (int x = 0; x < resolutionX; x++) {
+            int avg_z_depth = 0;
+            double3 avg_ray_color{0, 0, 0};
 
-        /*
-         * Les formules suivantes ont été obtenus via un cours d'infographie
-         * donné par une université de l'état d'Ohio:
-         * https://web.cse.ohio-state.edu/~shen.94/681/Site/Slides_files/basic_algo.pdf
-         */
+            for (int iray = 0; iray < scene.samples_per_pixel; iray++) {
+                // Génère le rayon approprié pour ce pixel.
+                Ray ray;
+                // Initialise la profondeur de récursivité du rayon.
+                int ray_depth = 0;
+                double3 ray_color{0, 0, 0}; // Initialise la couleur du rayon
 
-        double3 n = normalize(scene.camera.position - scene.camera.center);
-        double3 u = normalize(cross(scene.camera.up, n));
-        double3 v = cross(n, u);
+                double out_z_depth = scene.camera.z_far;
 
-        double H = 2.0 * scene.camera.z_near *
-                   std::tan(deg2rad(scene.camera.fovy / 2.0));
-        double W = H * scene.camera.aspect;
-        double3 C = scene.camera.position - n * scene.camera.z_near;
-        double3 L = C - u * W / 2.0 - v * H / 2.0;
+                // @@@@@@ VOTRE CODE ICI
+                // Mettez en place le rayon primaire en utilisant les paramètres de la caméra.
+                // Lancez le rayon de manière uniformément aléatoire à l'intérieur du pixel
+                // dans la zone délimitée par jitter_radius.
+                // Faites la moyenne des différentes couleurs obtenues suite à la récursion.
 
-        double3 pixelPosition = L + u * x * W / double(resolutionX) +
-                                v * y * H / double(resolutionY);
+                /*
+                 * Les formules suivantes ont été obtenues via un cours d'infographie
+                 * donné par une université de l'état d'Ohio:
+                 * https://web.cse.ohio-state.edu/~shen.94/681/Site/Slides_files/basic_algo.pdf
+                 */
 
-        ray.origin = scene.camera.position;
-        ray.direction = normalize(pixelPosition - ray.origin);
-        trace(scene, ray, ray_depth, &ray_color, &out_z_depth);
-        avg_z_depth += out_z_depth;
-        avg_ray_color += ray_color;
-      }
+                double3 n = normalize(scene.camera.position - scene.camera.center);
+                double3 u = normalize(cross(scene.camera.up, n));
+                double3 v = cross(n, u);
 
-      avg_z_depth = avg_z_depth / scene.samples_per_pixel;
-      avg_ray_color = avg_ray_color / scene.samples_per_pixel;
-      output->set_color_pixel(x, y, avg_ray_color);
-      // Test de profondeur
-      if (avg_z_depth >= scene.camera.z_near &&
-          avg_z_depth <= scene.camera.z_far &&
-          avg_z_depth < z_buffer[x + y * scene.resolution[0]]) {
-        z_buffer[x + y * scene.resolution[0]] = avg_z_depth;
+                double H = 2.0 * scene.camera.z_near * std::tan(deg2rad(scene.camera.fovy / 2.0));
+                double W = H * scene.camera.aspect;
+                double3 C = scene.camera.position - n * scene.camera.z_near;
+                double3 L = C - u * W / 2.0 - v * H / 2.0;
 
-        // Met à jour la couleur de l'image (et sa profondeur)
-        output->set_color_pixel(x, y, avg_ray_color);
-        output->set_depth_pixel(x, y,
-                                (avg_z_depth - scene.camera.z_near) /
-                                    (scene.camera.z_far - scene.camera.z_near));
-      }
+                double3 pixelPosition = L + u * x * W / double(resolutionX) +
+                                        v * y * H / double(resolutionY);
+
+                ray.origin = scene.camera.position;
+                ray.direction = normalize(pixelPosition - ray.origin);
+                trace(scene, ray, ray_depth, &ray_color, &out_z_depth);
+                avg_z_depth += out_z_depth;
+                avg_ray_color += ray_color;
+            }
+
+            avg_z_depth = avg_z_depth / scene.samples_per_pixel;
+            avg_ray_color = avg_ray_color / scene.samples_per_pixel;
+            output->set_color_pixel(x, y, avg_ray_color);
+            // Test de profondeur
+            if (avg_z_depth >= scene.camera.z_near && avg_z_depth <= scene.camera.z_far &&
+                avg_z_depth < z_buffer[x + y * resolutionX]) {
+                z_buffer[x + y * resolutionX] = avg_z_depth;
+                // Met à jour la couleur de l'image (et sa profondeur)
+                output->set_depth_pixel(x, y,(avg_z_depth - scene.camera.z_near) / (scene.camera.z_far - scene.camera.z_near));
+            }
+            file << avg_ray_color.x << " " << avg_ray_color.y << " " << avg_ray_color.z << std::endl;
+        }
     }
-  }
-
-  delete[] z_buffer;
+    file.close();
+    delete[] z_buffer;
 }
-// 3. raytracer.cpp - Raytracer::trace Mettez à jour les couleurs et le buffer
-// de sortie s'il y a intersection en fonction de raytracer.cpp -
-// Raytracer::shade. (Ignorez le lancer de rayons secondaires pour la réflexion
-// et la réfraction pour le moment. Laissez raytracer.cpp - Raytracer::shade
-// vide pour le moment).
+
+// 3. raytracer.cpp - Raytracer::trace
+// Mettez à jour les couleurs et le buffer de sortie s'il y a intersection
+// en fonction de raytracer.cpp - Raytracer::shade.
+// (Ignorez le lancer de rayons secondaires pour la réflexion et la réfraction pour le moment.
+// Laissez raytracer.cpp - Raytracer::shade vide pour le moment).
+
 // @@@@@@ VOTRE CODE ICI
 // Veuillez remplir les objectifs suivants:
-// 		- Détermine si le rayon intersecte la géométrie.
-//      	- Calculer la contribution associée à la réflexion.
-//			- Calculer la contribution associée à la réfraction.
-//			- Mettre à jour la couleur avec le shading +
-//			  Ajouter réflexion selon material.reflection +
-//			  Ajouter réfraction selon material.refraction
-//            pour la couleur de sortie.
-//          - Mettre à jour la nouvelle profondeure.
+//   - Déterminer si le rayon intersecte la géométrie.
+//   - Calculer la contribution associée à la réflexion.
+//   - Calculer la contribution associée à la réfraction.
+//   - Mettre à jour la couleur avec le shading +
+//     Ajouter réflexion selon material.reflection +
+//     Ajouter réfraction selon material.refraction pour la couleur de sortie.
+//   - Mettre à jour la nouvelle profondeur.
+
 void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
                       double3 *out_color, double *out_z_depth) {
-  Intersection hit;
+    Intersection hit;
 
-  // Fait appel à l'un des containers spécifiées.
-  if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit, true)) {
+    // Fait appel à l'un des containers spécifiés.
+    if (scene.container->intersect(ray, EPSILON, *out_z_depth, &hit, true)) {
+        Material &material = ResourceManager::Instance()->materials[hit.key_material];
 
-      Material &material =
-              ResourceManager::Instance()->materials[hit.key_material];
+        // @@@@@@ VOTRE CODE ICI
+        // Déterminer la couleur associée à la réflexion d'un rayon de manière récursive.
 
-      // @@@@@@ VOTRE CODE ICI
-      // Déterminer la couleur associée à la réflection d'un rayon de manière
-      // récursive.
-      //
-      //
-      double3 reflectedColor;
-      double3 refractedColor;
-      bool isRefract = false;
-      bool isReflex = false;
-      // k_reflection is the coefficient of color captured
-      // by the object when throwing rays.
-      if (material.k_reflection > 0) {
-          if (ray_depth < scene.max_ray_depth) {
-              isReflex = true;
-              // reflected ray direction
-              double3 d = ray.direction;
-              // normal to the surface
-              double3 n = hit.normal;
-              double3 r = normalize(d - 2 * dot(d, n) * n);
+        double3 reflectedColor;
+        double3 refractedColor;
+        bool isRefract = false;
+        bool isReflex = false;
 
-              Ray reflectedRay(hit.position + EPSILON * r, r);
-              trace(scene, reflectedRay, ray_depth + 1, &reflectedColor, out_z_depth);
-          }
-      } else if (material.k_refraction > 0) {
-          // On a une réfraction
-          double indiceIncident =
-                  1.0; // On suppose qu'on passe toujours de l'air vers autre chose;
-          double indiceRefractant = material.refractive_index;
-          double eta = indiceIncident / indiceRefractant;
-          if (ray_depth < scene.max_ray_depth) {
-              isRefract = true;
-              double3 normal = hit.normal;
-              double3 rayDirection = ray.direction;
+        // k_reflection is the coefficient of color captured by the object when throwing rays.
+        if (material.k_reflection > 0) {
+            if (ray_depth < scene.max_ray_depth) {
+                isReflex = true;
+                // Direction du rayon réfléchi
+                double3 d = ray.direction;
+                double3 n = hit.normal;
+                double3 r = normalize(d - 2 * dot(d, n) * n);
 
-              double3 T =
-                      normal * (eta * dot(normal, rayDirection) -
-                                sqrt(1 - pow(eta, 2) *
-                                         (1 - pow(dot(normal, rayDirection), 2)))) -
-                      eta * rayDirection;
+                Ray reflectedRay(hit.position + EPSILON * r, r);
+                trace(scene, reflectedRay, ray_depth + 1, &reflectedColor, out_z_depth);
+            }
+        } else if (material.k_refraction > 0) {
+            // On a une réfraction
+            double indiceIncident = 1.0; // On suppose qu'on passe toujours de l'air vers autre chose
+            double indiceRefractant = material.refractive_index;
+            double eta = indiceIncident / indiceRefractant;
+            if (ray_depth < scene.max_ray_depth) {
+                isRefract = true;
+                double3 normal = hit.normal;
+                double3 rayDirection = ray.direction;
 
-              double c1 = dot(-rayDirection, normal);
-              double c2 = sqrt(1 - pow(eta, 2) * (1 - pow(c1, 2)));
+                double c1 = dot(-rayDirection, normal);
+                double c2 = sqrt(1 - pow(eta, 2) * (1 - pow(c1, 2)));
 
-              T = eta * rayDirection + (eta * c1 - c2) * normal;
+                double3 T = eta * rayDirection + (eta * c1 - c2) * normal;
 
-              Ray refractedRay;
+                Ray refractedRay;
+                refractedRay.direction = normalize(T);
+                refractedRay.origin = hit.position + EPSILON * T;
 
-              refractedRay.direction = normalize(T);
-              refractedRay.origin = hit.position + EPSILON * T;
+                trace(scene, refractedRay, ray_depth + 1, &refractedColor, out_z_depth);
+            }
+        }
 
-              trace(scene, refractedRay, ray_depth + 1, &refractedColor, out_z_depth);
-          }
-      }
-      if (isReflex) {
-          reflectedColor *= material.k_reflection;
-      }
-      if (isRefract) {
-          refractedColor *= material.k_refraction;
-      }
+        if (isReflex) {
+            reflectedColor *= material.k_reflection;
+        }
+        if (isRefract) {
+            refractedColor *= material.k_refraction;
+        }
 
-      double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
+        double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
 
-      if(hit.hitGrid) {
-          *out_color = backGroundColor * hit.transmittance + hit.scatter;
-      }
-      else {
-          *out_color = backGroundColor;
-      }
+        if (hit.hitGrid) {
+            *out_color = backGroundColor * hit.transmittance + hit.scatter;
+        } else {
+            *out_color = backGroundColor;
+        }
 
-      *out_z_depth = hit.depth;
-  } else {
-    // if no intersection, set the color
-    *out_color = double3(0, 0, 0);
-  }
+        *out_z_depth = hit.depth;
+    } else {
+        // Si pas d'intersection, on définit la couleur
+        *out_color = double3(0, 0, 0);
+    }
 }
 
-// @@@@@@ VOTRE CODE ICI
-// Déterminer la couleur associée à la réfraction d'un rayon de manière
-// récursive.
-//
-// Assumez que l'extérieur/l'air a un indice de réfraction de 1.
-//
-// Toutes les géométries sont des surfaces et non pas de volumes.
-// Using Snell's Law, we can calculate the refraction vector.j
-//
-//
-
-// @@@@@@ VOTRE CODE ICI
-// Veuillez remplir les objectifs suivants:
-// 		* Calculer la contribution des lumières dans la scène.
-//			1 - Itérer sur toutes les lumières.
-//				1.1 - Inclure la contribution spéculaire selon
-// le modèle de Blinn en incluant la composante
-// métallique. 	          	1.2 - Inclure la contribution diffuse. (Faites
-// attention au produit scalare. >= 0)
-//   	  	2 - Inclure la contribution ambiante
-
-//      * Calculer si le point est dans l'ombre
-//			3 - Itérer sur tous les objets et détecter si le rayon
-// entre l'intersection et la lumière est
-// occludé. 				3.1 - Ne pas considérer les points plus
-// loins que la lumière. 			4 - Par la suite, intégrer la
-// pénombre dans votre calcul
-//		* Déterminer la couleur du point d'intersection.
-//        	- Si texture est présente, prende la couleur à la coordonnées uv
-//			- Si aucune texture, prendre la couleur associé au
-// matériel.
-
-// Small function to keep the code clean;
+// Small function to keep the code clean
 double3 UVMap(double u, double v, const bitmap_image &texture) {
-  double3 out_color(0, 0, 0);
+    double3 out_color(0, 0, 0);
+    rgb_t colour;
 
-  rgb_t colour;
+    texture.get_pixel(u, v, colour);
 
-  texture.get_pixel(u, v, colour);
+    double r = static_cast<double>(colour.red);
+    double g = static_cast<double>(colour.green);
+    double b = static_cast<double>(colour.blue);
 
-  double r = static_cast<double>(colour.red);
-  double g = static_cast<double>(colour.green);
-  double b = static_cast<double>(colour.blue);
+    out_color = double3(r / 255.0, g / 255.0, b / 255.0);
 
-  out_color = double3(r / 255.0, g / 255.0, b / 255.0);
-
-  return out_color;
+    return out_color;
 }
 
 double3 Raytracer::shade(const Scene &scene, Intersection hit) {
-  Material &material = ResourceManager::Instance()->materials[hit.key_material];
+    Material &material = ResourceManager::Instance()->materials[hit.key_material];
 
-  auto k_a = material.k_ambient;
-  auto k_d = material.k_diffuse;
-  auto k_s = material.k_specular;
-  auto normal = hit.normal;
-  auto hitPosition = hit.position;
-  auto m = material.metallic;
-  auto n = material.shininess;
-  auto cameraPosition = scene.camera.position;
-  double3 color(0, 0, 0);
-  double3 colorAlbedo;
+    auto k_a = material.k_ambient;
+    auto k_d = material.k_diffuse;
+    auto k_s = material.k_specular;
+    auto normal = hit.normal;
+    auto hitPosition = hit.position;
+    auto m = material.metallic;
+    auto n = material.shininess;
+    auto cameraPosition = scene.camera.position;
+    double3 color(0, 0, 0);
+    double3 colorAlbedo;
 
-  // If there's no texture present;
-  if (material.texture_albedo.height() == 0 ||
-      material.texture_albedo.width() == 0) {
-    colorAlbedo = material.color_albedo;
-  } else {
-    auto x = hit.uv.x * material.texture_albedo.width();
-    auto y = hit.uv.y * material.texture_albedo.height();
-    colorAlbedo = UVMap(x, y, material.texture_albedo);
-    // return double3(fmod(hit.uv.x,255.0)/255.0,0, 0);
-  }
+    // Si aucune texture n'est présente
+    if (material.texture_albedo.height() == 0 ||
+        material.texture_albedo.width() == 0) {
+        colorAlbedo = material.color_albedo;
+    } else {
+        auto x = hit.uv.x * material.texture_albedo.width();
+        auto y = hit.uv.y * material.texture_albedo.height();
+        colorAlbedo = UVMap(x, y, material.texture_albedo);
+    }
 
-  std::vector<SphericalLight> lights = scene.lights;
-  double3 ambiantLight = scene.ambient_light;
+    std::vector<SphericalLight> lights = scene.lights;
+    double3 ambiantLight = scene.ambient_light;
 
-  // Attendre ce que Caio dit;
-  double3 ambiantContribution = ambiantLight * k_a * colorAlbedo;
+    double3 ambiantContribution = ambiantLight * k_a * colorAlbedo;
 
-  double3 diffuseContribution(0, 0, 0);
-  double3 blinnContribution(0, 0, 0);
-  for (int i = 0; i < lights.size(); i++) {
-    SphericalLight light = lights[i];
-    double3 toLight = light.position - hitPosition;
-    double lightDistance = length(toLight);
-    toLight = normalize(toLight);
+    double3 diffuseContribution(0, 0, 0);
+    double3 blinnContribution(0, 0, 0);
 
-    double3 shadowOrigin = hitPosition + EPSILON * hit.normal;
-    Ray shadowRay = Ray(shadowOrigin, toLight);
+    for (int i = 0; i < lights.size(); i++) {
+        SphericalLight light = lights[i];
+        double3 toLight = light.position - hitPosition;
+        double lightDistance = length(toLight);
+        toLight = normalize(toLight);
 
-    Intersection shadowHit;
-    double lightReceived = 1.0;
-    // Handle soft shadows if the light has a radius
-    if (light.radius > 0) {
-      // will be used to count the number of visible rays
-      double visibleRays = 0;
-      // Normal of the disk
-      double3 diskNormal = normalize(hit.position - light.position);
-      double3 diskCenter = light.position;
+        double3 shadowOrigin = hitPosition + EPSILON * hit.normal;
+        Ray shadowRay = Ray(shadowOrigin, toLight);
 
-      for (int i = 0; i < SOFT_SHADOWS_SAMPLES; ++i) {
-        // Random point on the disk of radius light.radius
-        double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
+        Intersection shadowHit;
+        double lightReceived = 1.0;
 
-        // Two vectors that are perpendicular to the normal of the disk
-        // and to each other
-        double3 firstDiskDirectorVector =
-            normalize(abs(diskNormal.x) > abs(diskNormal.y)
-                          ? double3(-diskNormal.z, 0, diskNormal.x)
-                          : double3(0, -diskNormal.z, diskNormal.y));
-        double3 secondDiskDirectorVector =
-            normalize(cross(diskNormal, firstDiskDirectorVector));
+        // Handle soft shadows if the light has a radius
+        if (light.radius > 0) {
+            double visibleRays = 0;
+            double3 diskNormal = normalize(hit.position - light.position);
+            double3 diskCenter = light.position;
 
+            for (int i = 0; i < SOFT_SHADOWS_SAMPLES; ++i) {
+                double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
 
-        // convert the random point into a 3D point
-        double3 randomPoint3D = diskCenter +
-                                randomPointOnDisk.x * firstDiskDirectorVector +
-                                randomPointOnDisk.y * secondDiskDirectorVector;
+                double3 firstDiskDirectorVector = normalize(
+                        abs(diskNormal.x) > abs(diskNormal.y)
+                        ? double3(-diskNormal.z, 0, diskNormal.x)
+                        : double3(0, -diskNormal.z, diskNormal.y));
+                double3 secondDiskDirectorVector =
+                        normalize(cross(diskNormal, firstDiskDirectorVector));
 
-        double3 shadowOrigin = hit.position + EPSILON * hit.normal;
-        double3 shadowRayDir = normalize(randomPoint3D - hit.position);
-        double distanceToLight = length(randomPoint3D - hit.position);
-        Ray shadowRay = Ray(shadowOrigin, shadowRayDir);
+                double3 randomPoint3D = diskCenter +
+                                        randomPointOnDisk.x * firstDiskDirectorVector +
+                                        randomPointOnDisk.y * secondDiskDirectorVector;
 
-        if (!scene.container->intersect(shadowRay, EPSILON, distanceToLight,
-                                        &shadowHit, false)) {
-          visibleRays++;
+                double3 shadowOrigin = hit.position + EPSILON * hit.normal;
+                double3 shadowRayDir = normalize(randomPoint3D - hit.position);
+                double distanceToLight = length(randomPoint3D - hit.position);
+                Ray shadowRay = Ray(shadowOrigin, shadowRayDir);
+
+                if (!scene.container->intersect(shadowRay, EPSILON, distanceToLight,
+                                                &shadowHit, false)) {
+                    visibleRays++;
+                }
+            }
+            lightReceived *= visibleRays / SOFT_SHADOWS_SAMPLES;
         }
-      }
-      lightReceived *= visibleRays / SOFT_SHADOWS_SAMPLES;
-    }
 
-    if (light.radius == 0) {
-      if (scene.container->intersect(shadowRay, EPSILON, lightDistance,
-                                     &shadowHit, false)) {
-        if (shadowHit.depth < lightDistance) {
-          continue;
+        if (light.radius == 0) {
+            if (scene.container->intersect(shadowRay, EPSILON, lightDistance,
+                                           &shadowHit, false)) {
+                if (shadowHit.depth < lightDistance) {
+                    continue;
+                }
+            }
         }
-      }
+
+        if (lightReceived == 0) {
+            continue;
+        }
+
+        // Si la lumière n'est pas occultée, on calcule la contribution de la lumière au pixel
+        /*
+         * Lumière ponctuelle
+         */
+
+        double nDotL = std::max(dot(normal, toLight), 0.0);
+        double3 diffuseContributionWithoutShadow =
+                (colorAlbedo * light.emission * k_d * nDotL) / pow(lightDistance, 2);
+
+        double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+        double nDotH = std::max(dot(normal, bisector), 0.0);
+        double3 blinnContributionWithoutShadow =
+                (m * colorAlbedo + (1 - m)) * (k_s * light.emission * pow(nDotH, n)) /
+                pow(lightDistance, 2);
+
+        diffuseContribution += diffuseContributionWithoutShadow;
+        blinnContribution += blinnContributionWithoutShadow;
     }
-    if (lightReceived == 0) {
-        continue;
-    }
 
-    // If the light is not occluded, calculate the contribution
-    // of the light to the pixel
-    /*
-     * Lumière ponctuelle
-     */
-
-    double nDotL = std::max(dot(normal, toLight), 0.0);
-    double3 diffuseContributionWithoutShadow =
-        (colorAlbedo * light.emission * k_d * nDotL) / pow(lightDistance, 2);
-
-    double3 bisector =
-        normalize(toLight + normalize(cameraPosition - hitPosition));
-    double nDotH = std::max(dot(normal, bisector), 0.0);
-    double3 blinnContributionWithoutShadow =
-        (m * colorAlbedo + (1 - m)) * (k_s * light.emission * pow(nDotH, n)) /
-        pow(lightDistance, 2);
-
-    diffuseContribution += diffuseContributionWithoutShadow;
-    blinnContribution += blinnContributionWithoutShadow;
-  }
-
-  return ambiantContribution + diffuseContribution + blinnContribution;
+    return ambiantContribution + diffuseContribution + blinnContribution;
 }
 
 double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
@@ -394,8 +325,9 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
     double3 color(0, 0, 0);
     double3 colorAlbedo;
 
-    // If there's no texture present;
-    if (material.texture_albedo.height() == 0 || material.texture_albedo.width() == 0) {
+    // Si aucune texture n'est présente
+    if (material.texture_albedo.height() == 0 ||
+        material.texture_albedo.width() == 0) {
         colorAlbedo = material.color_albedo;
     } else {
         auto x = hit.uv.x * material.texture_albedo.width();
@@ -411,113 +343,95 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
     double3 diffuseContribution(0, 0, 0);
     double3 blinnContribution(0, 0, 0);
 
-    for(int i = 0; i < lights.size(); i++) {
+    for (int i = 0; i < lights.size(); i++) {
         SphericalLight light = lights[i];
-        Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
+        Ray shadowRay =
+                Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
         double3 toLight = light.position - hit.position;
         double lightDistance = length(toLight);
         toLight = normalize(toLight);
         Intersection shadowHit;
-        // Is the alpha(x) in the formula I(x) = (1 - alpha(x)) * I_light;
-        // This formula is used to calculate the intensity of light reaching the object after passing through the medium;
         double lightBlocked;
         double3 lightIntensity = light.emission;
-        // If the light is juste a point in space
-        if(light.radius == 0) {
-            /*
-             * If the light is juste a point in space, we simply have to check if the
-             * shadow ray is occluded by something in the scene. If the shadow ray hits
-             * an object, then 100% of the light is blocked. However, if the shadow ray
-             * hits the particpating medium, then some percent of the light gets blocked (depends
-             * on the accumulated opacity when traversing the medium). If the shadow ray doesn't hit
-             * anything, then the light is not blocked at all.
-             */
-            if(!scene.container->intersect(shadowRay, EPSILON, lightDistance, &shadowHit, true)) {
-                // If the shadow ray doesn't hit any objects;
-                if(shadowHit.hitGrid) {
+
+        // Si la lumière est un point dans l'espace
+        if (light.radius == 0) {
+            if (!scene.container->intersect(shadowRay, EPSILON, lightDistance,
+                                            &shadowHit, true)) {
+                if (shadowHit.hitGrid) {
                     lightBlocked = shadowHit.transmittance;
                     lightIntensity = lightBlocked * light.emission;
-                }
-                else {
+                } else {
                     lightBlocked = 0;
                     lightIntensity = (1 - lightBlocked) * light.emission;
                 }
-            }
-            else {
-                // If the shadow ray hits an object;
+            } else {
                 lightBlocked = 1.0;
                 lightIntensity = (1 - lightBlocked) * light.emission;
             }
-            // Evaluate the shading model;
-            // Calculate the intensity of the light that reaches the object;
-            // Evaluate the diffuse contribution;
-            double nDotL = std::max(dot(normal, toLight), 0.0);
-            diffuseContribution += (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
 
-            // Evaluate the specular contribution;
-            double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+            // Évaluer le modèle d'éclairage
+            double nDotL = std::max(dot(normal, toLight), 0.0);
+            diffuseContribution +=
+                    (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
+
+            double3 bisector =
+                    normalize(toLight + normalize(cameraPosition - hitPosition));
             double nDotH = std::max(dot(normal, bisector), 0.0);
-            blinnContribution += (0.5 * colorAlbedo + (1 - 0.5)) * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
-        }
-        // If the light is an actual sphere with a non 0 radius
-        else {
-            /* If the light is an actual sphere with a non 0 radius, then we also have to take into account the soft shadows
-             * that the light will produce. In order to do so, we simply shoot multiple rays from the intersection point to random
-             * points on the sphere. Similar to the point light, if the ray hits an object, then the light is blocked. If it hits the
-             * medium, then the light is partially blocked. If it doesn't hit anything, then the light is not blocked at all. We then
-             * calculate the percentage of light that is not blocked and use that to calculate the contribution of the light to the pixel.
-             */
+            blinnContribution +=
+                    (0.5 * colorAlbedo + (1 - 0.5)) *
+                    (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
+        } else {
+            // Si la lumière est une sphère avec un rayon non nul
             double3 diskNormal = normalize(hit.position - light.position);
             double3 diskCenter = light.position;
             int visibleRays = 0;
-            double3 diffuseContributionWithoutShadow = double3(0,0,0);
-            double3 blinnContributionWithoutShadow = double3(0,0,0);
-            for(int j = 0; j < SOFT_SHADOWS_SAMPLES; j++) {
+            double3 diffuseContributionWithoutShadow(0, 0, 0);
+            double3 blinnContributionWithoutShadow(0, 0, 0);
+
+            for (int j = 0; j < SOFT_SHADOWS_SAMPLES; j++) {
                 double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
-                double3 firstDiskDirectorVector = normalize(abs(diskNormal.x) > abs(diskNormal.y) ? double3(-diskNormal.z, 0, diskNormal.x) : double3(0, -diskNormal.z, diskNormal.y));
-                double3 secondDiskDirectorVector = normalize(cross(diskNormal, firstDiskDirectorVector));
-                double3 randomPoint3D = diskCenter + randomPointOnDisk.x * firstDiskDirectorVector + randomPointOnDisk.y * secondDiskDirectorVector;
+                double3 firstDiskDirectorVector = normalize(
+                        abs(diskNormal.x) > abs(diskNormal.y)
+                        ? double3(-diskNormal.z, 0, diskNormal.x)
+                        : double3(0, -diskNormal.z, diskNormal.y));
+                double3 secondDiskDirectorVector =
+                        normalize(cross(diskNormal, firstDiskDirectorVector));
+                double3 randomPoint3D = diskCenter +
+                                        randomPointOnDisk.x * firstDiskDirectorVector +
+                                        randomPointOnDisk.y * secondDiskDirectorVector;
                 double3 shadowRayDir = normalize(randomPoint3D - hit.position);
                 double distanceToLight = length(randomPoint3D - hit.position);
                 Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, shadowRayDir);
-                if(scene.container->intersect(shadowRay, EPSILON, distanceToLight, &shadowHit, true)) {
-                    /* If we enter this block, then the ray does hit something. We now need to check if that intersection
-                    * is closer than the light itself. If it is, then the light is blocked. If it isn't, then the light is not.
-                    * If the intersection is after the light we can simply set the lightBlocked to the transmittance of the shadowHit,
-                    * which is the accumulated opacity of the medium. If it doesn't hit the medium, then the transmittance is 0, meaning
-                    * that 0% of light is occluded.
-                    */
-                    if(shadowHit.depth < distanceToLight) {
+
+                if (scene.container->intersect(shadowRay, EPSILON, distanceToLight,
+                                               &shadowHit, true)) {
+                    if (shadowHit.depth < distanceToLight) {
                         lightBlocked = 1.0;
-                    }
-                    else {
+                    } else {
                         lightBlocked = shadowHit.transmittance;
                         visibleRays++;
                     }
-                }
-                else {
+                } else {
                     lightBlocked = shadowHit.transmittance;
                     visibleRays++;
                 }
-                // Evaluate the shading model;
-                // Calculate the intensity of the light that reaches the object;
-                // Evaluate an occlusion factor based off of the amount of visible rays;
+
                 double occlusionFactor = visibleRays / SOFT_SHADOWS_SAMPLES;
                 double3 lightIntensity = (1 - lightBlocked) * light.emission;
-                // Evaluate the diffuse contribution with the occlusion factor;
-                double nDotL = std::max(dot(normal, toLight), 0.0);
-                diffuseContributionWithoutShadow.x += (colorAlbedo.x * lightIntensity.x * k_d * nDotL) * occlusionFactor;
-                diffuseContributionWithoutShadow.y += (colorAlbedo.y * lightIntensity.y * k_d * nDotL)  * occlusionFactor;
-                diffuseContributionWithoutShadow.z += (colorAlbedo.z * lightIntensity.z * k_d * nDotL)  * occlusionFactor;
 
-                // Evaluate the specular contribution with the occlusion factor;
-                double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+                double nDotL = std::max(dot(normal, toLight), 0.0);
+                diffuseContributionWithoutShadow +=
+                        (colorAlbedo * lightIntensity * k_d * nDotL) * occlusionFactor;
+
+                double3 bisector =
+                        normalize(toLight + normalize(cameraPosition - hitPosition));
                 double nDotH = std::max(dot(normal, bisector), 0.0);
-                blinnContributionWithoutShadow.x += (m * colorAlbedo.x + (1 - m)) * (k_s * lightIntensity.x * pow(nDotH, n)) * occlusionFactor;
-                blinnContributionWithoutShadow.y += (m * colorAlbedo.y + (1 - m)) * (k_s * lightIntensity.y * pow(nDotH, n))  * occlusionFactor;
-                blinnContributionWithoutShadow.z += (m * colorAlbedo.z + (1 - m)) * (k_s * lightIntensity.z * pow(nDotH, n))  * occlusionFactor;
+                blinnContributionWithoutShadow +=
+                        (m * colorAlbedo + (1 - m)) *
+                        (k_s * lightIntensity * pow(nDotH, n)) * occlusionFactor;
             }
-            // Average the color based off of the number of rays sent;
+
             diffuseContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
             blinnContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
             diffuseContribution += diffuseContributionWithoutShadow;
