@@ -73,7 +73,7 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
-        makeShereInGrid(voxel_x);
+        readDensityFromFile();
     }
     /**
      *
@@ -98,7 +98,8 @@ public:
             for (int y = 0; y < voxelCounts.y; y++) {
                 for (int z = 0; z < voxelCounts.z; z++) {
                     voxel v;
-                    v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
+                    //v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
+                    v.density = 0.5;
                     this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                 }
             }
@@ -195,8 +196,8 @@ public:
         vp_xform.y = vp.y;
         vp_xform.z = vp.x * sin(theta) + vp.z * cos(theta);
 
-        // double dist = std::min(1.0, length(vp_xform) / 0.5);
-        //double falloff = smoothstep(0.8, 1, dist);
+        double dist = std::min(1.0, length(vp_xform) / 0.5);
+        double falloff = smoothstep(0.8, 1, dist);
         double freq = 0.5;
         float lacunarity = 2.7;
         float H = 0.4;
@@ -208,11 +209,11 @@ public:
             fbmResult += noise(vp_xform) * pow(lacunarity, -H * k);
             vp_xform *= lacunarity;
         }
-        return fbmResult;
+        return std::max(0.f, std::abs(fbmResult)) * (1 - falloff);
     }
 
     void writeDensityToFile() {
-        std::ofstream file ("test_grid_2.txt");
+        std::ofstream file ("test_grid_3.txt");
 
         if(!file) {
             std::cerr << "Could not open file." << std::endl;
@@ -309,11 +310,9 @@ public:
 
     double3 background_color = double3(1, 0, 0);
 
-    double heneyGreensteinFactor = -0.6;
+    double heneyGreensteinFactor = 0;
 
     double d = 2;
-
-    double falloff = 4;
 
     int permutation[256] = {
             151, 160, 137,  91,  90,  15, 131,  13, 201,  95,  96,  53, 194, 233,   7, 225,
@@ -337,8 +336,6 @@ public:
     int p[512];
 
     double3 center = double3(0.5, 0.5, 0.5);
-
-
 };
 
 

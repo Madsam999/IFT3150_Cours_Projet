@@ -15,10 +15,14 @@ double ceil_epsilon(double x) {
     return std::ceil(x - EPSILON);
 }
 
+double round_epsilon(double x) {
+    return x < 0 ? ceil_epsilon(x) : floor_epsilon(x);
+}
+
 int3 worldToVoxelCoord(double3 start, int3 voxelCounts) {
-    int x = start.x < 1.0 ? start.x * voxelCounts.x : voxelCounts.x - 1;
-    int y = start.y < 1.0 ? start.y * voxelCounts.y : voxelCounts.y - 1;
-    int z = start.z < 1.0 ? start.z * voxelCounts.z : voxelCounts.z - 1;
+    int x = (start.x + EPSILON) < 1.0 ? static_cast<int>(round_epsilon(start.x * voxelCounts.x)) : voxelCounts.x - 1;
+    int y = (start.y + EPSILON) < 1.0 ? static_cast<int>(round_epsilon(start.y * voxelCounts.y)) : voxelCounts.y - 1;
+    int z = (start.z + EPSILON) < 1.0 ? static_cast<int>(round_epsilon(start.z * voxelCounts.z)) : voxelCounts.z - 1;
     return int3(x, y, z);
 }
 // ###############################################################################
@@ -58,7 +62,6 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
             return false;
         }
         start = ray.origin;
-        end = ray.origin + ray.direction * tMax;
     }
     else {
         double3 t0 = (minBound - ray.origin) * inv_dir;
@@ -66,11 +69,22 @@ bool Medium::local_intersect(Ray ray, double t_min, double t_max, Intersection *
 
         double3 tmin = min(t0, t1);
         double3 tmax = max(t0, t1);
-
         tMin = std::max(std::max(tmin.x, tmin.y), tmin.z);
         tMax = std::min(std::min(tmax.x, tmax.y), tmax.z);
+
+        if(tMin > tMax || tMax < t_min || tMin > t_max) {
+            return false;
+        }
+
         start = ray.origin + ray.direction * tMin;
+    }
+
+    if(tMax < t_max) {
         end = ray.origin + ray.direction * tMax;
+    }
+    else {
+        end = ray.origin + ray.direction * t_max;
+        tMax = t_max;
     }
 
     switch (traversalType) {
@@ -350,19 +364,26 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
 
         double lightTransmittance = 1.0;
         double lightDistance;
-        if(t_light <= EPSILON) {
-            lightDistance = 0;
+
+        if(distanceToLight < t_light) {
+            lightDistance = distanceToLight;
         }
         else {
-            lightDistance = t_light;
+            if(t_light <= EPSILON) {
+                lightDistance = 0;
+            }
+            else {
+                lightDistance = t_light;
+            }
         }
+
         int lightIntervals = static_cast<int>(std::ceil(lightDistance / this->stepSize));
         double lightStep = lightDistance / lightIntervals;
         for(int n = 0; n < lightIntervals; n++) {
             double lightT = n * lightStep;
-            double3 lightPosition = lightRay.origin + lightRay.direction * lightT;
-            int3 lightVoxelPosition = worldToVoxelCoord(lightPosition, this->voxelCounts);
-            double lightDensity = triLinearInterpolation(lightPosition, lightVoxelPosition);
+            double3 lightMarch = lightRay.origin + lightRay.direction * lightT;
+            int3 lightVoxelPosition = worldToVoxelCoord(lightMarch, this->voxelCounts);
+            double lightDensity = triLinearInterpolation(lightMarch, lightVoxelPosition);
             double lightSampleAttenuation = std::exp(-lightStep * this->sigma_t * lightDensity);
             lightTransmittance *= lightSampleAttenuation;
         }
@@ -549,28 +570,37 @@ void Medium::lightMediumIntersection(Ray ray, double t_min, double* t_max) {
     // Since the ray is inside the volume, some of the t values will be negative.
     // Since some of them will be negative, we can ignore them.
 
-    double tMaxX, tMaxY, tMaxZ;
-    if (tmin < 0.0) {
-        tMaxX = tmax;
+    double tx, ty, tz;
+    if(ray.direction.x < 0) {
+        tx = tmin;
+    }
+    else if(ray.direction.x == 0) {
+        tx = DBL_MAX;
     }
     else {
-        tMaxX = tmin;
+        tx = tmax;
     }
 
-    if (tymin < 0.0) {
-        tMaxY = tymax;
+    if(ray.direction.y < 0) {
+        ty = tymin;
+    }
+    else if(ray.direction.y == 0) {
+        ty = DBL_MAX;
     }
     else {
-        tMaxY = tymin;
+        ty = tymax;
     }
 
-    if (tzmin < 0.0) {
-        tMaxZ = tzmax;
+    if(ray.direction.z < 0) {
+        tz = tzmin;
+    }
+    else if(ray.direction.z == 0) {
+        tz = DBL_MAX;
     }
     else {
-        tMaxZ = tzmin;
+        tz = tzmax;
     }
 
-    *t_max = std::min(tMaxX, std::min(tMaxY, tMaxZ));
+    *t_max = std::min(tx, std::min(ty, tz));
 }
 

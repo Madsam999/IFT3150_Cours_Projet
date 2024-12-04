@@ -139,9 +139,15 @@ PushMatrix
     Quad 3 "white"
 PopMatrix
 
+# Sphere
+PushMatrix
+    Translate 0 -2 0
+    Sphere 0.5 "red"
+PopMatrix
+
 #Medium
 PushMatrix
-    Translate -0.5 -0.5 -0.5
+    Translate -1 -2 -1
     Scale 2 2 2
     Medium 100 100 100 2 # qt of voxels x y z, traversal algorithm
 PopMatrix
@@ -152,8 +158,16 @@ PopMatrix
 # (à partir de laquelle la classe PointLight récupère ses valeurs).
 
 #Lumière blanche
-SphericalLight 0 1 0 # Position x y z
+SphericalLight 0 -0.5 0 # Position x y z
     "emission" [0.6 0.6 0.6]    # Intensité [r g b]
-    "radius"  0              # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+    "radius"  0.2                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+
+#Lumière verte
+SphericalLight 0 0 -2
+    "emission" [0 1 0]
+    "radius" 0
+
+
+
 
 

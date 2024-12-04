@@ -273,7 +273,7 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
                     visibleRays++;
                 }
             }
-            lightReceived *= visibleRays / SOFT_SHADOWS_SAMPLES;
+            lightReceived = visibleRays / SOFT_SHADOWS_SAMPLES;
         }
 
         if (light.radius == 0) {
@@ -304,8 +304,13 @@ double3 Raytracer::shade(const Scene &scene, Intersection hit) {
                 (m * colorAlbedo + (1 - m)) * (k_s * light.emission * pow(nDotH, n)) /
                 pow(lightDistance, 2);
 
-        diffuseContribution += diffuseContributionWithoutShadow;
-        blinnContribution += blinnContributionWithoutShadow;
+        if(light.radius == 0) {
+            diffuseContribution += diffuseContributionWithoutShadow;
+            blinnContribution += blinnContributionWithoutShadow;
+        } else {
+            diffuseContribution += diffuseContributionWithoutShadow * lightReceived;
+            blinnContribution += blinnContributionWithoutShadow * lightReceived;
+        }
     }
 
     return ambiantContribution + diffuseContribution + blinnContribution;
@@ -345,8 +350,7 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
 
     for (int i = 0; i < lights.size(); i++) {
         SphericalLight light = lights[i];
-        Ray shadowRay =
-                Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
+
         double3 toLight = light.position - hit.position;
         double lightDistance = length(toLight);
         toLight = normalize(toLight);
@@ -356,6 +360,8 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
 
         // Si la lumière est un point dans l'espace
         if (light.radius == 0) {
+            Ray shadowRay =
+                    Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
             if (!scene.container->intersect(shadowRay, EPSILON, lightDistance,
                                             &shadowHit, true)) {
                 if (shadowHit.hitGrid) {
@@ -379,16 +385,17 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                     normalize(toLight + normalize(cameraPosition - hitPosition));
             double nDotH = std::max(dot(normal, bisector), 0.0);
             blinnContribution +=
-                    (0.5 * colorAlbedo + (1 - 0.5)) *
+                    (m * colorAlbedo + (1 - m)) *
                     (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
-        } else {
+        }
+        else {
             // Si la lumière est une sphère avec un rayon non nul
             double3 diskNormal = normalize(hit.position - light.position);
             double3 diskCenter = light.position;
-            int visibleRays = 0;
             double3 diffuseContributionWithoutShadow(0, 0, 0);
             double3 blinnContributionWithoutShadow(0, 0, 0);
 
+            double qtyLightHitting = 0;
             for (int j = 0; j < SOFT_SHADOWS_SAMPLES; j++) {
                 double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
                 double3 firstDiskDirectorVector = normalize(
@@ -404,38 +411,26 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                 double distanceToLight = length(randomPoint3D - hit.position);
                 Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, shadowRayDir);
 
-                if (scene.container->intersect(shadowRay, EPSILON, distanceToLight,
-                                               &shadowHit, true)) {
-                    if (shadowHit.depth < distanceToLight) {
-                        lightBlocked = 1.0;
+                if(!scene.container->intersect(shadowRay, EPSILON, distanceToLight, &shadowHit, true)){
+                    if(shadowHit.hitGrid){
+                        qtyLightHitting += shadowHit.transmittance;
                     } else {
-                        lightBlocked = shadowHit.transmittance;
-                        visibleRays++;
+                        qtyLightHitting += 1;
                     }
-                } else {
-                    lightBlocked = shadowHit.transmittance;
-                    visibleRays++;
                 }
-
-                double occlusionFactor = visibleRays / SOFT_SHADOWS_SAMPLES;
-                double3 lightIntensity = (1 - lightBlocked) * light.emission;
-
-                double nDotL = std::max(dot(normal, toLight), 0.0);
-                diffuseContributionWithoutShadow +=
-                        (colorAlbedo * lightIntensity * k_d * nDotL) * occlusionFactor;
-
-                double3 bisector =
-                        normalize(toLight + normalize(cameraPosition - hitPosition));
-                double nDotH = std::max(dot(normal, bisector), 0.0);
-                blinnContributionWithoutShadow +=
-                        (m * colorAlbedo + (1 - m)) *
-                        (k_s * lightIntensity * pow(nDotH, n)) * occlusionFactor;
+                else {
+                    qtyLightHitting += 0;
+                }
             }
+            double averageLightHitting = qtyLightHitting / SOFT_SHADOWS_SAMPLES;
+            lightIntensity = (averageLightHitting) * light.emission;
 
-            diffuseContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
-            blinnContributionWithoutShadow /= SOFT_SHADOWS_SAMPLES;
-            diffuseContribution += diffuseContributionWithoutShadow;
-            blinnContribution += blinnContributionWithoutShadow;
+            double nDotL = std::max(dot(normal, toLight), 0.0);
+            diffuseContribution += (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
+
+            double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
+            double nDotH = std::max(dot(normal, bisector), 0.0);
+            blinnContribution += (m * colorAlbedo + (1 - m)) * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
         }
     }
 
