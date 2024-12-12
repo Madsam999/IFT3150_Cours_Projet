@@ -73,7 +73,7 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
-        readDensityFromFile();
+        createVoxels();
     }
     /**
      *
@@ -99,7 +99,7 @@ public:
                 for (int z = 0; z < voxelCounts.z; z++) {
                     voxel v;
                     //v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
-                    v.density = 0.5;
+                    v.density = 0.05;
                     this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                 }
             }
@@ -264,7 +264,7 @@ public:
     void RayMarching_Traversal_Regular_Step_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
     void RayMarching_Traversal_Middle_Ray_Voxel(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
     void RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double3 end, Intersection *hit, Ray ray, double tMin, double tMax);
-    bool RayMarching_Algorithm(double3 position, double *transmittance, double3 *scatter, double step, Ray ray, double t);
+    bool RayMarching_Algorithm(double3 position, double3 *transmittance, double3 *scatter, double step, Ray ray, double t);
 
     double triLinearInterpolation(double3 position, int3 voxelPosition);
     void lightMediumIntersection(Ray ray, double t_min, double* t_max);
@@ -300,11 +300,9 @@ public:
     double4x4 transform;
     double4x4 i_transform;
 
-    double sigma_a = 0.5; // absorption coefficient
-    double sigma_s = 0.9; // scattering coefficient
-    double sigma_t = sigma_a + sigma_s; // extinction coefficient
-
-    double3 scatter = double3(0.5, 0.5, 0.5);
+    double3 sigma_a = double3(0.5, 1, 0.5); // absorption coefficient
+    double3 sigma_s = double3(1, 0.4, 0.765); // scattering coefficient
+    double3 sigma_t = sigma_a + sigma_s; // extinction coefficient
 
     Scene* scene;
 

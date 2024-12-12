@@ -201,7 +201,7 @@ void Medium::RayMarching_Traversal_Regular_Step(double3 start, double3 end, Inte
     int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
     double step = (tMax - tMin) / intervals;
 
-    double transmittance = 1.0;
+    double3 transmittance = double3(1,1,1);
     double3 colorResult = double3(0,0,0);
 
     for(int n = 0; n < intervals; n++) {
@@ -234,7 +234,7 @@ void Medium::RayMarching_Traversal_Regular_Step_Jitter(double3 start, double3 en
     int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
     double step = (tMax - tMin) / intervals;
 
-    double transmittance = 1.0;
+    double3 transmittance = double3(1,1,1);
     double3 colorResult = double3(0,0,0);
 
     for(int n = 0; n < intervals; n++) {
@@ -267,7 +267,7 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel(double3 start, double3 end, 
     int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
     double step = (tMax - tMin) / intervals;
 
-    double transmittance = 1.0;
+    double3 transmittance = double3(1,1,1);
     double3 colorResult = double3(0,0,0);
 
     for(int n = 0; n < intervals; n++) {
@@ -300,7 +300,7 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double
     int intervals = static_cast<int>(std::ceil((tMax - tMin) / stepSize));
     double step = (tMax - tMin) / intervals;
 
-    double transmittance = 1.0;
+    double3 transmittance = double3(1,1,1);
     double3 colorResult = double3(0,0,0);
 
     for(int n = 0; n < intervals; n++) {
@@ -333,12 +333,12 @@ void Medium::RayMarching_Traversal_Middle_Ray_Voxel_Jitter(double3 start, double
  * @param t
  * @return bool
  */
-bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, double3 *colorResult, double step , Ray ray, double t) {
+bool Medium::RayMarching_Algorithm(double3 position, double3 *transmittance, double3 *colorResult, double step , Ray ray, double t) {
     // Generate on the fly the density of the medium using Perlin noise
     int3 voxelPosition = worldToVoxelCoord(position, this->voxelCounts);
     double density = triLinearInterpolation(position, voxelPosition);
     // Find the attenuation of the sample
-    double sampleAttenuation = std::exp(-step * this->sigma_t * density);
+    double3 sampleAttenuation = exp(-step * this->sigma_t * density);
 
     *transmittance *= sampleAttenuation;
 
@@ -362,7 +362,7 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
          * the amount of light reaching the point.
          */
 
-        double lightTransmittance = 1.0;
+        double3 lightTransmittance = double3(1,1,1);
         double lightDistance;
 
         if(distanceToLight < t_light) {
@@ -384,7 +384,7 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
             double3 lightMarch = lightRay.origin + lightRay.direction * lightT;
             int3 lightVoxelPosition = worldToVoxelCoord(lightMarch, this->voxelCounts);
             double lightDensity = triLinearInterpolation(lightMarch, lightVoxelPosition);
-            double lightSampleAttenuation = std::exp(-lightStep * this->sigma_t * lightDensity);
+            double3 lightSampleAttenuation = exp(-lightStep * this->sigma_t * lightDensity);
             lightTransmittance *= lightSampleAttenuation;
         }
 
@@ -396,7 +396,7 @@ bool Medium::RayMarching_Algorithm(double3 position, double *transmittance, doub
         double3 lightIntensity = lightColor * lightTransmittance * phaseFunction;
         *colorResult += lightIntensity * *transmittance * density * step * this->sigma_s;
 
-        if(*transmittance < 1e-3) {
+        if(transmittance->x < 1e-3 || transmittance->y < 1e-3 || transmittance->z < 1e-3) {
             if(rand() < 1.f/this->d) {
                 return true;
             }

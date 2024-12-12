@@ -1,5 +1,5 @@
 #Meta argument for the actual scene
-dimension 640 480 #Largeur Hauteur
+dimension 1920 1080 #Largeur Hauteur
 container "Naive" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.
@@ -23,7 +23,7 @@ Material "glass"
     "shininess" 1 # Exposant speculaire
     "metallic" 1 # Coefficent metallique
     "k_refraction" 1 # Facteur de refraction
-        "refractive_index"   4 # Indice de refraction
+        "refractive_index"   0.5 # Indice de refraction
     "k_reflection" 0 # Indice de reflection
 
 Material "mirror"
@@ -113,9 +113,15 @@ Material "cage"
 
 ###############################################################################
 
+#Back Wall
+PushMatrix
+    Translate 0 0 15
+    Quad 20 "cage"
+PopMatrix
+
 PushMatrix
     Translate 0 0 -3
-    Quad 3 "blue"
+    Quad 3 "white"
 PopMatrix
 
 # Floor
@@ -139,15 +145,14 @@ PushMatrix
     Quad 3 "white"
 PopMatrix
 
-# Sphere
 PushMatrix
-    Translate 0 -2 0
-    Sphere 0.5 "red"
+    Translate 0 1 -1
+    Sphere 0.75 "mirror"
 PopMatrix
 
 #Medium
 PushMatrix
-    Translate -1 -2 -1
+    Translate -1 -1 -1
     Scale 2 2 2
     Medium 100 100 100 2 # qt of voxels x y z, traversal algorithm
 PopMatrix
@@ -158,13 +163,12 @@ PopMatrix
 # (à partir de laquelle la classe PointLight récupère ses valeurs).
 
 #Lumière blanche
-SphericalLight 0 -0.5 0 # Position x y z
-    "emission" [0.6 0.6 0.6]    # Intensité [r g b]
+SphericalLight 0 0 0 # Position x y z
+    "emission" [1 1 1]    # Intensité [r g b]
     "radius"  0.2                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
 
-#Lumière verte
-SphericalLight 0 0 -2
-    "emission" [0 1 0]
+SphericalLight 0 2 0
+    "emission" [0.5 0.5 0.5]
     "radius" 0
 
 

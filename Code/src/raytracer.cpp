@@ -140,7 +140,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
             }
         } else if (material.k_refraction > 0) {
             // On a une réfraction
-            double indiceIncident = 1.0; // On suppose qu'on passe toujours de l'air vers autre chose
+            double indiceIncident = 1.0; // On suppose qu'on passe toujours du vide vers autre chose
             double indiceRefractant = material.refractive_index;
             double eta = indiceIncident / indiceRefractant;
             if (ray_depth < scene.max_ray_depth) {
@@ -355,7 +355,7 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
         double lightDistance = length(toLight);
         toLight = normalize(toLight);
         Intersection shadowHit;
-        double lightBlocked;
+        double3 lightBlocked;
         double3 lightIntensity = light.emission;
 
         // Si la lumière est un point dans l'espace
@@ -368,25 +368,25 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                     lightBlocked = shadowHit.transmittance;
                     lightIntensity = lightBlocked * light.emission;
                 } else {
-                    lightBlocked = 0;
+                    lightBlocked = double3(0,0,0);
                     lightIntensity = (1 - lightBlocked) * light.emission;
                 }
             } else {
-                lightBlocked = 1.0;
+                lightBlocked = {0, 0, 0};
                 lightIntensity = (1 - lightBlocked) * light.emission;
             }
 
             // Évaluer le modèle d'éclairage
             double nDotL = std::max(dot(normal, toLight), 0.0);
             diffuseContribution +=
-                    (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
+                    5 * (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
 
             double3 bisector =
                     normalize(toLight + normalize(cameraPosition - hitPosition));
             double nDotH = std::max(dot(normal, bisector), 0.0);
             blinnContribution +=
                     (m * colorAlbedo + (1 - m)) *
-                    (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
+                    5 * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
         }
         else {
             // Si la lumière est une sphère avec un rayon non nul
@@ -395,7 +395,7 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
             double3 diffuseContributionWithoutShadow(0, 0, 0);
             double3 blinnContributionWithoutShadow(0, 0, 0);
 
-            double qtyLightHitting = 0;
+            double3 qtyLightHitting = double3(0,0,0);
             for (int j = 0; j < SOFT_SHADOWS_SAMPLES; j++) {
                 double2 randomPointOnDisk = random_in_unit_disk() * light.radius;
                 double3 firstDiskDirectorVector = normalize(
@@ -422,15 +422,15 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                     qtyLightHitting += 0;
                 }
             }
-            double averageLightHitting = qtyLightHitting / SOFT_SHADOWS_SAMPLES;
+            double3 averageLightHitting = qtyLightHitting / SOFT_SHADOWS_SAMPLES;
             lightIntensity = (averageLightHitting) * light.emission;
 
             double nDotL = std::max(dot(normal, toLight), 0.0);
-            diffuseContribution += (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
+            diffuseContribution += 5 * (colorAlbedo * lightIntensity * k_d * nDotL) / pow(lightDistance, 2);
 
             double3 bisector = normalize(toLight + normalize(cameraPosition - hitPosition));
             double nDotH = std::max(dot(normal, bisector), 0.0);
-            blinnContribution += (m * colorAlbedo + (1 - m)) * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
+            blinnContribution += 5 * (m * colorAlbedo + (1 - m)) * (k_s * lightIntensity * pow(nDotH, n)) / pow(lightDistance, 2);
         }
     }
 
