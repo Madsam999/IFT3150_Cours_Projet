@@ -1,6 +1,6 @@
 #Meta argument for the actual scene
 dimension 640 480 #Largeur Hauteur
-container "Naive" # Type de container pour nos objets [Naive,BVH]
+container "BVH" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.
 max_ray_depth  2 # Profondeur maximale
@@ -10,7 +10,7 @@ ambient_light [0.1 0.1 0.1] # Lumière ambiante associée à la lampe.
 Perspective 30.0 1.33 3 20
 
 # Comme gluLookAt.
-LookAt  -10 1.25  10 # position de l'oeil
+LookAt  0  1.25  15 # position de l'oeil
         0  0 0 # position du focus
         0 0.992278 -0.124035 # Vecteur up
 
@@ -98,7 +98,6 @@ Material "cage"
         "refractive_index"   1.0
     "k_reflection" 0
 
-
 ###############################################################################
 
 PushMatrix
@@ -115,7 +114,20 @@ PopMatrix
 
 PushMatrix
     Translate -0.80 -2 0
-    Sphere 0.75 "glass" 
+    Sphere 0.75 "glass"
+PopMatrix
+
+PushMatrix
+    Translate -1 1.5 0
+    Scale 0.5 0.5 0.5 # Mise à l'echelle x y z
+    Mesh "data/assets/mesh/cube.obj" "red" # Mesh "path_to_obj" "material"
+PopMatrix
+
+# Ceil
+PushMatrix
+    Translate 0 3 0
+    Rotate 90 1 0 0
+    Quad 3 "white" # Quad demi_largeur "material"
 PopMatrix
 
 # Floor
@@ -144,14 +156,31 @@ PushMatrix
     Quad 3 "green"
 PopMatrix
 
+#Left Wall
+PushMatrix
+    Translate -3 0 0
+    Rotate -90 0 1 0
+    Quad 3 "red"
+PopMatrix
+
+#Medium
+PushMatrix
+    Translate -1.5 -1.5 -1.5
+    Scale 3 3 3
+    Medium 500 500 500 2 # qt of voxels x y z, traversal algorithm
+PopMatrix
+
 ###############################################################################
 # Spécification pour une source de lumière :
 # La syntaxe basique est `PointLight x y z`, suivi par une liste de paramètres
 # (à partir de laquelle la classe PointLight récupère ses valeurs).
 
 #Lumière blanche
-SphericalLight 0 5 0 # Position x y z
+SphericalLight 0 -0.5 0 # Position x y z
     "emission" [0.6 0.6 0.6]    # Intensité [r g b]
-    "radius"  0.2                 # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+    "radius"  0.2                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
 
-
+#Lumière verte
+SphericalLight 0 0 -2
+    "emission" [0 1 0]
+    "radius" 0

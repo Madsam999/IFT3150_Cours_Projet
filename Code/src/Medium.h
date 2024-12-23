@@ -73,7 +73,10 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
+        float start = clock();
         readDensityFromFile();
+        float end = clock();
+        std::cout << "Reading density from file took: " << (end - start) / CLOCKS_PER_SEC << " seconds." << std::endl;
     }
     /**
      *
@@ -99,7 +102,7 @@ public:
                 for (int z = 0; z < voxelCounts.z; z++) {
                     voxel v;
                     //v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
-                    v.density = 0.5;
+                    v.density = 0;
                     this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                 }
             }
@@ -170,7 +173,7 @@ public:
                     v.density = 0;
                     voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                     if (distance < 0.5) {
-                        double density = eval_density(position);
+                        double density = 1;
                         voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y].density = density;
                     }
                 }
@@ -196,8 +199,8 @@ public:
         vp_xform.y = vp.y;
         vp_xform.z = vp.x * sin(theta) + vp.z * cos(theta);
 
-        double dist = std::min(1.0, length(vp_xform) / 0.5);
-        double falloff = smoothstep(0.8, 1, dist);
+        // double dist = std::min(1.0, length(vp_xform) / 0.5);
+        //double falloff = smoothstep(0.8, 1, dist);
         double freq = 0.5;
         float lacunarity = 2.7;
         float H = 0.4;
@@ -209,11 +212,12 @@ public:
             fbmResult += noise(vp_xform) * pow(lacunarity, -H * k);
             vp_xform *= lacunarity;
         }
-        return std::max(0.f, std::abs(fbmResult)) * (1 - falloff);
+        return std::max(0.f, fbmResult);//(1 - falloff);//std::max(0.f, fbmResult);// * (1 - falloff));
+        return fbmResult;
     }
 
     void writeDensityToFile() {
-        std::ofstream file ("test_grid_3.txt");
+        std::ofstream file ("grid_rapport_2.txt");
 
         if(!file) {
             std::cerr << "Could not open file." << std::endl;
@@ -238,7 +242,7 @@ public:
     }
 
     void readDensityFromFile() {
-        std::ifstream file ("test_grid_2.txt");
+        std::ifstream file ("grid_rapport_2.txt");
 
         if(!file.is_open()) {
             std::cerr << "Could not open file." << std::endl;

@@ -44,6 +44,15 @@ bool BVH::intersect(Ray ray, double t_min, double t_max, Intersection *hit, bool
       }
     }
   }
+
+  if(grid) {
+      for(size_t i = 0; i < mediums.size(); ++i) {
+          if(mediums[i]->intersect(ray, t_min, t_max, hit)) {
+              hit->hitGrid = true;
+          }
+      }
+  }
+
   return isHit;
 }
 // @@@@@@ VOTRE CODE ICI

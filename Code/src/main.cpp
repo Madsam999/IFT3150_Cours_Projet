@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 	// Analyse le fichier de la scène
 	Parser parser(new std::ifstream(filename_scene_input.string().c_str()));
     std::cout << filename_scene_input.string().c_str() << std::endl;
+    double start = clock();
 	if (!parser.parse()) {
 		std::cout << "Scene is not found or can't be parsed." << std::endl;
 	}
@@ -60,6 +61,8 @@ int main(int argc, char **argv)
 
 		std::cout << "Ray tracing finished with images saved." << std::endl;
 	}
+    double end = clock();
+    std::cout << "Time: " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
 	
 	// Décommentez si vous utilisez Visual Studio
 	// system("pause");

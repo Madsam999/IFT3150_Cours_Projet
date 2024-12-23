@@ -1,6 +1,6 @@
 #Meta argument for the actual scene
 dimension 640 480 #Largeur Hauteur
-container "Naive" # Type de container pour nos objets [Naive,BVH]
+container "BVH" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.
 max_ray_depth  2 # Profondeur maximale
@@ -88,7 +88,7 @@ Material "green"
 
 Material "yellow"
     "texture_albedo" ""
-    "color_albedo" [1 0.5 0]
+    "color_albedo" [1 1 0]
     "k_ambient"   0.1
     "k_diffuse"   0.6
     "k_specular"  0.5
@@ -100,6 +100,30 @@ Material "yellow"
 
 Material "cage"
     "texture_albedo" "data/assets/texture/cage.bmp"
+    "color_albedo" [0.6 0.6 0.6]
+    "k_ambient"   1.0
+    "k_diffuse"   0
+    "k_specular"  0
+    "shininess" 1
+    "metallic" 1
+    "k_refraction" 0
+        "refractive_index"   1.0
+    "k_reflection" 0
+
+Material "pierre"
+    "texture_albedo" "data/assets/texture/pierre.bmp"
+    "color_albedo" [0.6 0.6 0.6]
+    "k_ambient"   1.0
+    "k_diffuse"   0
+    "k_specular"  0
+    "shininess" 1
+    "metallic" 1
+    "k_refraction" 0
+        "refractive_index"   1.0
+    "k_reflection" 0
+
+Material "kiryu"
+    "texture_albedo" "data/assets/texture/sad_kiryu.bmp"
     "color_albedo" [0.6 0.6 0.6]
     "k_ambient"   1.0
     "k_diffuse"   0
@@ -128,28 +152,55 @@ PopMatrix
 #Right Wall
 PushMatrix
     Translate 3 0 0
-    Rotate 90 0 1 0
+    Rotate -90 0 1 0
     Quad 3 "green"
 PopMatrix
 
-# Floor
+#Left Wall
+PushMatrix
+    Translate -3 0 0
+    Rotate 90 0 1 0
+    Quad 3 "red"
+PopMatrix
+
+# Ceiling
 PushMatrix
     Translate 0 3 0
     Rotate 90 1 0 0
-    Quad 3 "white"
-PopMatrix
-
-# Sphere
-PushMatrix
-    Translate 0 -2 0
-    Sphere 0.5 "red"
+    Quad 3 "yellow"
 PopMatrix
 
 #Medium
 PushMatrix
-    Translate -1 -2 -1
-    Scale 2 2 2
-    Medium 100 100 100 2 # qt of voxels x y z, traversal algorithm
+    Translate -1.5 -1.5 -1.5
+    Scale 3 3 3
+    Medium 500 500 500 2 # qt of voxels x y z, traversal algorithm
+PopMatrix
+
+#Sphere
+PushMatrix
+    Translate 1 -2 1.5
+    Sphere 0.5 "mirror"
+PopMatrix
+
+# Back Wall
+PushMatrix
+    Translate 0 0 15
+    Quad 20 "pierre"
+PopMatrix
+
+# Ichiban
+PushMatrix
+    Translate 3 -2 0
+    Scale 0.5 0.5 0.5
+    Mesh "data/assets/mesh/Ichiban.obj" "red"
+PopMatrix
+
+# Kiryu
+PushMatrix
+    Translate -3 -2 0
+    Scale 0.5 0.5 0.5
+    Mesh "data/assets/mesh/Kiryu_LAD8.obj" "kiryu"
 PopMatrix
 
 ###############################################################################
@@ -158,14 +209,17 @@ PopMatrix
 # (à partir de laquelle la classe PointLight récupère ses valeurs).
 
 #Lumière blanche
-SphericalLight 0 -0.5 0 # Position x y z
-    "emission" [0.6 0.6 0.6]    # Intensité [r g b]
-    "radius"  0.2                # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+SphericalLight 0 0 0 # Position x y z
+    "emission" [1 1 1]    # Intensité [r g b]
+    "radius"  0
 
-#Lumière verte
-SphericalLight 0 0 -2
-    "emission" [0 1 0]
-    "radius" 0
+SphericalLight 0 5 0 # Position x y z
+    "emission" [0.6 0 0]    # Intensité [r g b]
+    "radius"  0.2                 # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
+
+SphericalLight 0 1.5 -2.5 # Position x y z
+    "emission" [1 0.41 0.71]    # Intensité [r g b]
+    "radius"  0.1                 # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
 
 
 

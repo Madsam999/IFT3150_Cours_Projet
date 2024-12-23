@@ -171,7 +171,7 @@ void Raytracer::trace(const Scene &scene, Ray ray, int ray_depth,
         double3 backGroundColor = newShade(scene, hit) + reflectedColor + refractedColor;
 
         if (hit.hitGrid) {
-            *out_color = backGroundColor * hit.transmittance + hit.scatter;
+            *out_color = backGroundColor * (hit.transmittance) + hit.scatter;
         } else {
             *out_color = backGroundColor;
         }
@@ -329,6 +329,7 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
     auto cameraPosition = scene.camera.position;
     double3 color(0, 0, 0);
     double3 colorAlbedo;
+    auto k_reflection = material.k_reflection;
 
     // Si aucune texture n'est présente
     if (material.texture_albedo.height() == 0 ||
@@ -343,7 +344,7 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
     std::vector<SphericalLight> lights = scene.lights;
     double3 ambiantLight = scene.ambient_light;
 
-    color = ambiantLight * k_a * colorAlbedo;
+    color = colorAlbedo * ambiantLight * k_a;
 
     double3 diffuseContribution(0, 0, 0);
     double3 blinnContribution(0, 0, 0);
