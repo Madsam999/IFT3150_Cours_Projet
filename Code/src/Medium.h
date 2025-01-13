@@ -73,10 +73,7 @@ public:
 
         this->stepSize = 0.05;
         // Read density values from text file
-        float start = clock();
-        readDensityFromFile();
-        float end = clock();
-        std::cout << "Reading density from file took: " << (end - start) / CLOCKS_PER_SEC << " seconds." << std::endl;
+        createVoxels();
     }
     /**
      *
@@ -101,8 +98,7 @@ public:
             for (int y = 0; y < voxelCounts.y; y++) {
                 for (int z = 0; z < voxelCounts.z; z++) {
                     voxel v;
-                    //v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
-                    v.density = 0;
+                    v.density = eval_density(double3((x + 0.5) / voxelCounts.x, (y + 0.5) / voxelCounts.y, (z + 0.5) / voxelCounts.z));
                     this->voxels[x + y * voxelCounts.x + z * voxelCounts.x * voxelCounts.y] = v;
                 }
             }

@@ -363,8 +363,11 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
         if (light.radius == 0) {
             Ray shadowRay =
                     Ray(hit.position + EPSILON * hit.normal, normalize(light.position - hit.position));
-            if (!scene.container->intersect(shadowRay, EPSILON, lightDistance,
-                                            &shadowHit, true)) {
+
+            bool intersected = scene.container->intersect(shadowRay, EPSILON, lightDistance, &shadowHit, true);
+            auto materialOfIntersected = ResourceManager::Instance()->materials[shadowHit.key_material];
+
+            if (!intersected) {
                 if (shadowHit.hitGrid) {
                     lightBlocked = shadowHit.transmittance;
                     lightIntensity = lightBlocked * light.emission;
@@ -373,8 +376,19 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                     lightIntensity = (1 - lightBlocked) * light.emission;
                 }
             } else {
-                lightBlocked = 1.0;
+                if(materialOfIntersected.k_refraction > 0) {
+                    if (shadowHit.hitGrid) {
+                        lightBlocked = shadowHit.transmittance;
+                        lightIntensity = lightBlocked * light.emission;
+                    } else {
+                        lightBlocked = 0;
+                        lightIntensity = (1 - lightBlocked) * light.emission;
+                    }
+                }
+                else {
+                lightBlocked = 1;
                 lightIntensity = (1 - lightBlocked) * light.emission;
+                }
             }
 
             // Évaluer le modèle d'éclairage
@@ -412,7 +426,10 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                 double distanceToLight = length(randomPoint3D - hit.position);
                 Ray shadowRay = Ray(hit.position + EPSILON * hit.normal, shadowRayDir);
 
-                if(!scene.container->intersect(shadowRay, EPSILON, distanceToLight, &shadowHit, true)){
+                bool intersected = scene.container->intersect(shadowRay, EPSILON, distanceToLight, &shadowHit, true);
+                auto materialOfIntersected = ResourceManager::Instance()->materials[shadowHit.key_material];
+
+                if(!intersected){
                     if(shadowHit.hitGrid){
                         qtyLightHitting += shadowHit.transmittance;
                     } else {
@@ -420,7 +437,15 @@ double3 Raytracer::newShade(const Scene &scene, Intersection hit) {
                     }
                 }
                 else {
-                    qtyLightHitting += 0;
+                    if(materialOfIntersected.k_refraction > 0){
+                        if(shadowHit.hitGrid){
+                            qtyLightHitting += shadowHit.transmittance;
+                        } else {
+                            qtyLightHitting += 1;
+                        }
+                    } else {
+                        qtyLightHitting += 0;
+                    }
                 }
             }
             double averageLightHitting = qtyLightHitting / SOFT_SHADOWS_SAMPLES;

@@ -1,5 +1,5 @@
 #Meta argument for the actual scene
-dimension 640 480 #Largeur Hauteur
+dimension 1920 1080 #Largeur Hauteur
 container "BVH" # Type de container pour nos objets [Naive,BVH]
 samples_per_pixel 5 # Nombre d'echantillon par pixel
 jitter_radius 0.5 # Variation aléatoire dans un carrée lors du lancer de rayon.
@@ -134,9 +134,22 @@ Material "kiryu"
         "refractive_index"   1.0
     "k_reflection" 0
 
+Material "emeric"
+    "texture_albedo" "data/assets/texture/emeric.bmp"
+    "color_albedo" [0.6 0.6 0.6]
+    "k_ambient"   1.0
+    "k_diffuse"   0
+    "k_specular"  0
+    "shininess" 1
+    "metallic" 1
+    "k_refraction" 0
+        "refractive_index"   1.0
+    "k_reflection" 0
+
 
 ###############################################################################
 
+# Back wall
 PushMatrix
     Translate 0 0 -3
     Quad 3 "blue"
@@ -170,37 +183,11 @@ PushMatrix
     Quad 3 "yellow"
 PopMatrix
 
-#Medium
+# Medium
 PushMatrix
-    Translate -1.5 -1.5 -1.5
+    Translate -1.5 -1.5 0
     Scale 3 3 3
-    Medium 500 500 500 2 # qt of voxels x y z, traversal algorithm
-PopMatrix
-
-#Sphere
-PushMatrix
-    Translate 1 -2 1.5
-    Sphere 0.5 "mirror"
-PopMatrix
-
-# Back Wall
-PushMatrix
-    Translate 0 0 15
-    Quad 20 "pierre"
-PopMatrix
-
-# Ichiban
-PushMatrix
-    Translate 3 -2 0
-    Scale 0.5 0.5 0.5
-    Mesh "data/assets/mesh/Ichiban.obj" "red"
-PopMatrix
-
-# Kiryu
-PushMatrix
-    Translate -3 -2 0
-    Scale 0.5 0.5 0.5
-    Mesh "data/assets/mesh/Kiryu_LAD8.obj" "kiryu"
+    Medium 100 100 100 2
 PopMatrix
 
 ###############################################################################
@@ -212,16 +199,3 @@ PopMatrix
 SphericalLight 0 0 0 # Position x y z
     "emission" [1 1 1]    # Intensité [r g b]
     "radius"  0
-
-SphericalLight 0 5 0 # Position x y z
-    "emission" [0.6 0 0]    # Intensité [r g b]
-    "radius"  0.2                 # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
-
-SphericalLight 0 1.5 -2.5 # Position x y z
-    "emission" [1 0.41 0.71]    # Intensité [r g b]
-    "radius"  0.1                 # Rayon = 0 -> Lumière Ponctuel, Rayon > 0 -> Lumière Spherique
-
-
-
-
-
